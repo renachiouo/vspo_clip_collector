@@ -6,10 +6,7 @@
     <title>VSPO中文精華收集器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 簡單的自定義樣式，確保背景色在所有情況下都正確 */
-        body {
-            background-color: #111827; /* gray-900 */
-        }
+        body { background-color: #111827; }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -18,15 +15,11 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const API_KEYS = [
-            'AIzaSyAG8dHLitnxl9ML6Rt2BHkSIw6wtu8nblY', // 您的第一組 API 金鑰
-            'AIzaSyDuRpNhL7j1LtdLQqDGCKolH4PdTpZnuXA'  // 您的第二組 API 金鑰
-        ];
+        const PROXY_ENDPOINT = 'https://vspo-proxy-cnhdl8q28-renas-projects-c8ce958b.vercel.app'; 
+        
         const SEARCH_KEYWORDS = ["VSPO中文", "VSPO中文精華", "VSPO精華", "VSPO中文剪輯", "VSPO剪輯"];
         const OFFICIAL_CHANNEL_BLACKLIST = [
-          'UCuI5_lA2o-arAIKukGvIEcQ', // ぶいすぽっ！【公式】
-          'UCGCb_d_H-A7A2y52M4S3W-w', // 花芽すみれ
-          'UCyLGc23ry_p-zEAS_p_2qlg', // 花芽なずな
+          'UCuI5_lA2o-arAIKukGvIEcQ', 'UCGCb_d_H-A7A2y52M4S3W-w', 'UCyLGc23ry_p-zEAS_p_2qlg',
         ];
         const UPDATE_SCHEDULE = [
           '00:01', '01:01', '02:01', '03:01', '04:01', '05:01', '06:01', '07:01', 
@@ -34,16 +27,10 @@
           '14:01', '16:01', '17:01', '17:31', '18:01', '18:31', '19:01', '19:31', 
           '20:01', '21:01', '22:01', '23:01'
         ];
-        const DAILY_QUOTA = 10000;
 
         let state = {
-            allVideos: [],
-            isLoading: true,
-            lastUpdated: null,
-            nextUpdate: null,
-            apiError: null,
-            estimatedQuota: DAILY_QUOTA,
-            activeApiKeyIndex: 0,
+            allVideos: [], isLoading: true, lastUpdated: null,
+            nextUpdate: null, apiError: null,
         };
 
         const appContainer = document.getElementById('app');
@@ -53,47 +40,28 @@
         function createSpinner() {
             const container = document.createElement('div');
             container.className = "flex flex-col items-center justify-center space-y-4 p-8";
-            container.innerHTML = `
-                <div class="w-16 h-16 border-4 border-blue-400 border-t-transparent border-solid rounded-full animate-spin"></div>
-                <p class="text-lg text-gray-300">正在從 YouTube 宇宙中尋找最新的 VSPO 精華... ✨</p>
-            `;
+            container.innerHTML = `<div class="w-16 h-16 border-4 border-blue-400 border-t-transparent border-solid rounded-full animate-spin"></div><p class="text-lg text-gray-300">正在從代理伺服器獲取 VSPO 精華... ✨</p>`;
             return container;
         }
-
         function createErrorDisplay(error) {
             const container = document.createElement('div');
             container.className = "bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center";
-            container.innerHTML = `
-                <strong class="font-bold">發生錯誤！</strong>
-                <p class="block sm:inline ml-2">${error}</p>
-                <p class="mt-2 text-sm">這可能是因為 YouTube API 配額已用盡，請於下一個排定時間再試。</p>
-            `;
+            container.innerHTML = `<strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${error}</p><p class="mt-2 text-sm">請檢查代理伺服器是否正常運作。</p>`;
             return container;
         }
-        
         function createVideoCard(video, showChannel = true) {
-            const formatNumber = (num) => {
-                if (typeof num !== 'number') return 'N/A';
-                return num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
-            };
+            const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
                 const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
                 const intervals = { '年': 31536000, '個月': 2592000, '天': 86400, '小時': 3600, '分鐘': 60 };
                 for (let unit in intervals) {
-                    let interval = seconds / intervals[unit];
-                    if (interval > 1) return `${Math.floor(interval)} ${unit}前`;
+                    if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`;
                 }
                 return "剛剛";
             };
-
             const card = document.createElement('div');
             card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
-            
-            const channelLink = showChannel ? `
-                <a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer">
-                    <p class="text-sm text-gray-400 mt-2 hover:text-white transition-colors">${video.channelTitle}</p>
-                </a>` : '';
-
+            const channelLink = showChannel ? `<a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer"><p class="text-sm text-gray-400 mt-2 hover:text-white transition-colors">${video.channelTitle}</p></a>` : '';
             card.innerHTML = `
                 <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer">
                     <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
@@ -107,66 +75,41 @@
                         <span>${formatNumber(video.viewCount)} 次觀看</span>
                         <span>${timeAgo(video.publishedAt)}</span>
                     </div>
-                </div>
-            `;
+                </div>`;
             return card;
         }
-
-        // --- API 配額管理 ---
-        function getTodaysDateString() {
-            return new Date().toLocaleDateString('en-CA'); // 得到 YYYY-MM-DD 格式
-        }
-
-        function loadQuota() {
-            const storedQuota = localStorage.getItem('youtubeApiQuota');
-            const today = getTodaysDateString();
-            const validKeysCount = API_KEYS.filter(key => key && !key.includes('YOUR_')).length;
-            const totalQuota = DAILY_QUOTA * validKeysCount;
-
-            if (storedQuota) {
-                const { date, quota } = JSON.parse(storedQuota);
-                if (date === today) {
-                    state.estimatedQuota = quota;
-                } else {
-                    // 如果不是今天，重置配額
-                    localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: totalQuota }));
-                    state.estimatedQuota = totalQuota;
-                }
-            } else {
-                 localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: totalQuota }));
-                 state.estimatedQuota = totalQuota;
-            }
-        }
-
-        function updateQuota(cost) {
-            const newQuota = Math.max(0, state.estimatedQuota - cost);
-            state.estimatedQuota = newQuota;
-            localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: getTodaysDateString(), quota: newQuota }));
-        }
-
-        // --- API 請求邏輯 ---
+        
+        // --- API 請求邏輯 (已修改為呼叫代理) ---
         const batchArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
         
-        async function fetchFanVideosFromYouTube(apiKey) {
-            let cost = 0;
+        async function fetchViaProxy(endpoint, params) {
+            const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
+            url.searchParams.append('endpoint', endpoint);
+            for (const key in params) {
+                url.searchParams.append(key, params[key]);
+            }
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Proxy request failed with status ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function fetchFanVideosFromYouTube() {
+            console.log("透過代理伺服器請求資料...");
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
             const publishedAfter = oneMonthAgo.toISOString();
 
-            const searchPromises = SEARCH_KEYWORDS.map(keyword =>
-                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=50&publishedAfter=${publishedAfter}&key=${apiKey}`)
-                    .then(res => res.json())
+            const searchPromises = SEARCH_KEYWORDS.map(keyword => 
+                fetchViaProxy('search', { part: 'snippet', q: keyword, type: 'video', maxResults: 50, publishedAfter: publishedAfter })
             );
-            cost += SEARCH_KEYWORDS.length * 100;
-
+            
             const searchResults = await Promise.all(searchPromises);
             const videoSnippets = new Map();
             for (const result of searchResults) {
-                if (result.error && result.error.message.toLowerCase().includes('quota')) {
-                    throw new Error('quotaExceeded'); // 拋出特定錯誤用於金鑰輪替
-                } else if (result.error) {
-                    throw new Error(result.error.message);
-                }
+                if (result.error) throw new Error(result.error.message);
                 if (result.items) {
                     result.items.forEach(item => {
                         if (item.id.videoId && !videoSnippets.has(item.id.videoId) && !OFFICIAL_CHANNEL_BLACKLIST.includes(item.snippet.channelId)) {
@@ -177,12 +120,11 @@
             }
 
             const videoIds = Array.from(videoSnippets.keys());
-            if (videoIds.length === 0) return { videos: [], cost: cost };
+            if (videoIds.length === 0) return [];
 
             const videoDetailBatches = batchArray(videoIds, 50);
-            cost += videoDetailBatches.length * 1;
-            const videoDetailPromises = videoDetailBatches.map(batch =>
-                fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${batch.join(',')}&key=${apiKey}`).then(res => res.json())
+            const videoDetailPromises = videoDetailBatches.map(batch => 
+                fetchViaProxy('videos', { part: 'statistics,snippet', id: batch.join(',') })
             );
             const videoDetailResults = await Promise.all(videoDetailPromises);
             
@@ -194,9 +136,8 @@
 
             const channelIds = [...new Set(Array.from(videoSnippets.values()).map(s => s.channelId))];
             const channelDetailBatches = batchArray(channelIds, 50);
-            cost += channelDetailBatches.length * 1;
-            const channelDetailPromises = channelDetailBatches.map(batch =>
-                fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${batch.join(',')}&key=${apiKey}`).then(res => res.json())
+            const channelDetailPromises = channelDetailBatches.map(batch => 
+                fetchViaProxy('channels', { part: 'statistics', id: batch.join(',') })
             );
             const channelDetailResults = await Promise.all(channelDetailPromises);
 
@@ -220,43 +161,13 @@
                 };
             }).filter(Boolean);
             
-            return { videos: finalVideos, cost: cost };
-        }
-        
-        async function fetchWithKeyRotation() {
-            // 這個函數現在每次都會從第一組金鑰開始嘗試
-            for (let i = 0; i < API_KEYS.length; i++) {
-                const currentKey = API_KEYS[i];
-
-                if (!currentKey || currentKey.includes('YOUR_')) {
-                    console.warn(`跳過無效或預留的 API 金鑰 #${i + 1}`);
-                    continue;
-                }
-
-                try {
-                    console.log(`嘗試使用 API 金鑰 #${i + 1}...`);
-                    const result = await fetchFanVideosFromYouTube(currentKey);
-                    state.activeApiKeyIndex = i; // 更新狀態以反映成功使用的金鑰
-                    console.log(`API 金鑰 #${i + 1} 成功！`);
-                    return result;
-                } catch (error) {
-                    if (error.message === 'quotaExceeded') {
-                        console.warn(`API 金鑰 #${i + 1} 配額已用盡或無效，嘗試下一組...`);
-                        // 繼續循環以嘗試下一組金鑰
-                    } else {
-                        // 若為其他錯誤 (如網路問題)，則直接拋出
-                        throw error;
-                    }
-                }
-            }
-            // 若所有金鑰都嘗試失敗
-            throw new Error('所有 API 金鑰配額皆已用盡或無效。');
+            console.log("代理請求成功！");
+            return finalVideos;
         }
 
-        // --- 主應用程式邏輯與渲染 ---
-        
+        // --- 主應用程式邏輯與渲染 (已移除配額顯示) ---
         function render() {
-            const { allVideos, isLoading, lastUpdated, nextUpdate, apiError, estimatedQuota, activeApiKeyIndex } = state;
+            const { allVideos, isLoading, lastUpdated, nextUpdate, apiError } = state;
             
             const recentVideos = allVideos.slice(0, 10);
             const channels = {};
@@ -328,8 +239,6 @@
                 </header>
                 <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
-                        <span class="whitespace-nowrap">🔑 使用中金鑰: <span class="font-semibold text-sky-400">#${activeApiKeyIndex + 1}</span></span>
-                        <span class="whitespace-nowrap">📊 預估配額餘額: <span class="font-semibold text-green-400">${(estimatedQuota).toLocaleString()}</span></span>
                         ${lastUpdated ? `<span class="whitespace-nowrap">最後更新: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                         ${nextUpdate ? `<span class="whitespace-nowrap">下次更新: ${nextUpdate.toLocaleTimeString()}</span>` : ''}
                     </div>
@@ -343,13 +252,20 @@
             state.isLoading = true;
             state.apiError = null;
             render();
+            
+            if (!PROXY_ENDPOINT || PROXY_ENDPOINT.includes('YOUR_VERCEL_APP_URL')) {
+                state.apiError = "代理伺服器網址尚未設定。";
+                state.isLoading = false;
+                render();
+                return;
+            }
+
             try {
-                const { videos, cost } = await fetchWithKeyRotation();
-                updateQuota(cost);
+                const videos = await fetchFanVideosFromYouTube();
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date();
             } catch (error) {
-                console.error("API 請求失敗:", error);
+                console.error("代理請求失敗:", error);
                 state.apiError = error.message;
             } finally {
                 state.isLoading = false;
@@ -378,7 +294,7 @@
             }
             state.nextUpdate = nextUpdateTime;
             const msUntilNextUpdate = nextUpdateTime.getTime() - now.getTime();
-            console.log(`下一次更新排定於: ${nextUpdateTime.toLocaleString()}, 將在 ${Math.round(msUntilNextUpdate / 1000 / 60)} 分鐘後執行。`);
+            console.log(`下一次更新排定於: ${nextUpdateTime.toLocaleString()}`);
             timeoutId = setTimeout(() => {
                 fetchData().then(() => scheduleNextUpdate());
             }, msUntilNextUpdate);
@@ -386,7 +302,6 @@
         }
 
         // --- 應用程式啟動 ---
-        loadQuota();
         fetchData().then(() => scheduleNextUpdate());
 
     </script>
