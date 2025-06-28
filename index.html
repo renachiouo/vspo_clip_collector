@@ -18,7 +18,10 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const API_KEY = 'AIzaSyAG8dHLitnxl9ML6Rt2BHkSIw6wtu8nblY'; // 您的 API 金鑰
+        const API_KEYS = [
+            'AIzaSyAG8dHLitnxl9ML6Rt2BHkSIw6wtu8nblY', // 您的第一組 API 金鑰
+            'AIzaSyDuRpNhL7j1LtdLQqDGCKolH4PdTpZnuXA'  // 您的第二組 API 金鑰
+        ];
         const SEARCH_KEYWORDS = ["VSPO中文", "VSPO中文精華", "VSPO精華", "VSPO中文剪輯", "VSPO剪輯"];
         const OFFICIAL_CHANNEL_BLACKLIST = [
           'UCuI5_lA2o-arAIKukGvIEcQ', // ぶいすぽっ！【公式】
@@ -26,28 +29,27 @@
           'UCyLGc23ry_p-zEAS_p_2qlg', // 花芽なずな
         ];
         const UPDATE_SCHEDULE = [
-          '00:01', '01:01', '02:01', '07:01', '08:01', '09:01', '10:01', 
-          '11:01', '11:31', '12:01', '12:31', '13:01', '14:01', '16:01', 
-          '17:01', '17:31', '18:01', '19:01', '20:01', '21:01', '22:01', 
-          '23:01'
+          '00:01', '01:01', '02:01', '03:01', '04:01', '05:01', '06:01', '07:01', 
+          '08:01', '09:01', '10:01', '11:01', '11:31', '12:01', '12:31', '13:01', 
+          '14:01', '16:01', '17:01', '17:31', '18:01', '18:31', '19:01', '19:31', 
+          '20:01', '21:01', '22:01', '23:01'
         ];
         const DAILY_QUOTA = 10000;
 
         let state = {
             allVideos: [],
             isLoading: true,
-            searchTerm: '',
             lastUpdated: null,
             nextUpdate: null,
             apiError: null,
             estimatedQuota: DAILY_QUOTA,
+            activeApiKeyIndex: 0,
         };
 
         const appContainer = document.getElementById('app');
         let timeoutId = null;
 
-        // --- UI 元件產生器 (取代 React Components) ---
-
+        // --- UI 元件產生器 ---
         function createSpinner() {
             const container = document.createElement('div');
             container.className = "flex flex-col items-center justify-center space-y-4 p-8";
@@ -112,24 +114,27 @@
 
         // --- API 配額管理 ---
         function getTodaysDateString() {
-            return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+            return new Date().toLocaleDateString('en-CA'); // 得到 YYYY-MM-DD 格式
         }
 
         function loadQuota() {
             const storedQuota = localStorage.getItem('youtubeApiQuota');
             const today = getTodaysDateString();
+            const validKeysCount = API_KEYS.filter(key => key && !key.includes('YOUR_')).length;
+            const totalQuota = DAILY_QUOTA * validKeysCount;
+
             if (storedQuota) {
                 const { date, quota } = JSON.parse(storedQuota);
                 if (date === today) {
                     state.estimatedQuota = quota;
                 } else {
                     // 如果不是今天，重置配額
-                    localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: DAILY_QUOTA }));
-                    state.estimatedQuota = DAILY_QUOTA;
+                    localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: totalQuota }));
+                    state.estimatedQuota = totalQuota;
                 }
             } else {
-                 localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: DAILY_QUOTA }));
-                 state.estimatedQuota = DAILY_QUOTA;
+                 localStorage.setItem('youtubeApiQuota', JSON.stringify({ date: today, quota: totalQuota }));
+                 state.estimatedQuota = totalQuota;
             }
         }
 
@@ -142,24 +147,26 @@
         // --- API 請求邏輯 ---
         const batchArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
         
-        async function fetchFanVideosFromYouTube() {
-            let cost = 0; // 初始化成本計算器
-            console.log("真實 API 請求：開始抓取資料...");
+        async function fetchFanVideosFromYouTube(apiKey) {
+            let cost = 0;
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
             const publishedAfter = oneMonthAgo.toISOString();
 
             const searchPromises = SEARCH_KEYWORDS.map(keyword =>
-                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=50&publishedAfter=${publishedAfter}&key=${API_KEY}`)
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=50&publishedAfter=${publishedAfter}&key=${apiKey}`)
                     .then(res => res.json())
             );
-            cost += SEARCH_KEYWORDS.length * 100; // 搜尋成本
+            cost += SEARCH_KEYWORDS.length * 100;
 
             const searchResults = await Promise.all(searchPromises);
-            // ... (其餘邏輯不變)
             const videoSnippets = new Map();
             for (const result of searchResults) {
-                if (result.error) throw new Error(result.error.message);
+                if (result.error && result.error.message.toLowerCase().includes('quota')) {
+                    throw new Error('quotaExceeded'); // 拋出特定錯誤用於金鑰輪替
+                } else if (result.error) {
+                    throw new Error(result.error.message);
+                }
                 if (result.items) {
                     result.items.forEach(item => {
                         if (item.id.videoId && !videoSnippets.has(item.id.videoId) && !OFFICIAL_CHANNEL_BLACKLIST.includes(item.snippet.channelId)) {
@@ -173,13 +180,12 @@
             if (videoIds.length === 0) return { videos: [], cost: cost };
 
             const videoDetailBatches = batchArray(videoIds, 50);
-            cost += videoDetailBatches.length * 1; // 影片詳情成本
+            cost += videoDetailBatches.length * 1;
             const videoDetailPromises = videoDetailBatches.map(batch =>
-                fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${batch.join(',')}&key=${API_KEY}`).then(res => res.json())
+                fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${batch.join(',')}&key=${apiKey}`).then(res => res.json())
             );
             const videoDetailResults = await Promise.all(videoDetailPromises);
             
-            // ... (其餘邏輯不變)
             const videoDetailsMap = new Map();
             videoDetailResults.forEach(result => {
                 if (result.error) throw new Error(result.error.message);
@@ -188,13 +194,12 @@
 
             const channelIds = [...new Set(Array.from(videoSnippets.values()).map(s => s.channelId))];
             const channelDetailBatches = batchArray(channelIds, 50);
-            cost += channelDetailBatches.length * 1; // 頻道詳情成本
+            cost += channelDetailBatches.length * 1;
             const channelDetailPromises = channelDetailBatches.map(batch =>
-                fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${batch.join(',')}&key=${API_KEY}`).then(res => res.json())
+                fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${batch.join(',')}&key=${apiKey}`).then(res => res.json())
             );
             const channelDetailResults = await Promise.all(channelDetailPromises);
 
-            // ... (其餘邏輯不變)
             const channelStatsMap = new Map();
             channelDetailResults.forEach(result => {
                 if (result.error) throw new Error(result.error.message);
@@ -206,27 +211,53 @@
                 if (!detail) return null;
                 const channelStats = channelStatsMap.get(detail.snippet.channelId);
                 return {
-                    id: id,
-                    title: detail.snippet.title,
+                    id: id, title: detail.snippet.title,
                     thumbnail: detail.snippet.thumbnails.high?.url || detail.snippet.thumbnails.default?.url,
-                    channelId: detail.snippet.channelId,
-                    channelTitle: detail.snippet.channelTitle,
+                    channelId: detail.snippet.channelId, channelTitle: detail.snippet.channelTitle,
                     publishedAt: detail.snippet.publishedAt,
                     viewCount: detail.statistics ? parseInt(detail.statistics.viewCount, 10) : 0,
                     subscriberCount: channelStats ? parseInt(channelStats.subscriberCount, 10) : 0,
                 };
             }).filter(Boolean);
-
-            console.log(`真實 API 請求：完成！總共處理 ${finalVideos.length} 部粉絲精華。本次消耗約 ${cost} 配額。`);
+            
             return { videos: finalVideos, cost: cost };
+        }
+        
+        async function fetchWithKeyRotation() {
+            // 這個函數現在每次都會從第一組金鑰開始嘗試
+            for (let i = 0; i < API_KEYS.length; i++) {
+                const currentKey = API_KEYS[i];
+
+                if (!currentKey || currentKey.includes('YOUR_')) {
+                    console.warn(`跳過無效或預留的 API 金鑰 #${i + 1}`);
+                    continue;
+                }
+
+                try {
+                    console.log(`嘗試使用 API 金鑰 #${i + 1}...`);
+                    const result = await fetchFanVideosFromYouTube(currentKey);
+                    state.activeApiKeyIndex = i; // 更新狀態以反映成功使用的金鑰
+                    console.log(`API 金鑰 #${i + 1} 成功！`);
+                    return result;
+                } catch (error) {
+                    if (error.message === 'quotaExceeded') {
+                        console.warn(`API 金鑰 #${i + 1} 配額已用盡或無效，嘗試下一組...`);
+                        // 繼續循環以嘗試下一組金鑰
+                    } else {
+                        // 若為其他錯誤 (如網路問題)，則直接拋出
+                        throw error;
+                    }
+                }
+            }
+            // 若所有金鑰都嘗試失敗
+            throw new Error('所有 API 金鑰配額皆已用盡或無效。');
         }
 
         // --- 主應用程式邏輯與渲染 ---
         
         function render() {
-            const { allVideos, isLoading, searchTerm, lastUpdated, nextUpdate, apiError, estimatedQuota } = state;
+            const { allVideos, isLoading, lastUpdated, nextUpdate, apiError, estimatedQuota, activeApiKeyIndex } = state;
             
-            // ... (計算過濾後資料的邏輯不變) ...
             const recentVideos = allVideos.slice(0, 10);
             const channels = {};
             allVideos.forEach(video => {
@@ -238,11 +269,7 @@
                 }
             });
             const channelData = Object.values(channels).sort((a,b) => b.subscriberCount - a.subscriberCount);
-            const lowerCaseSearchTerm = searchTerm.toLowerCase();
-            const filteredRecentVideos = recentVideos.filter(v => !searchTerm || v.title.toLowerCase().includes(lowerCaseSearchTerm) || v.channelTitle.toLowerCase().includes(lowerCaseSearchTerm));
-            const filteredChannelData = channelData.filter(c => !searchTerm || c.name.toLowerCase().includes(lowerCaseSearchTerm) || (c.latestVideo && c.latestVideo.title.toLowerCase().includes(lowerCaseSearchTerm)));
-
-            // ... (渲染 UI 的邏輯，加入配額顯示) ...
+            
             appContainer.innerHTML = '';
             const mainContainer = document.createElement('div');
             mainContainer.className = "container mx-auto px-4 py-8";
@@ -256,8 +283,8 @@
                 const recentVideosSection = document.createElement('section');
                 const recentVideosGrid = document.createElement('div');
                 recentVideosGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                if(filteredRecentVideos.length > 0) {
-                   filteredRecentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
+                if(recentVideos.length > 0) {
+                   recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
                 } else {
                    recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
                 }
@@ -267,8 +294,8 @@
                 const channelListSection = document.createElement('section');
                 const channelListContainer = document.createElement('div');
                 channelListContainer.className = 'space-y-6';
-                if(filteredChannelData.length > 0) {
-                    filteredChannelData.forEach(channel => {
+                if(channelData.length > 0) {
+                    channelData.forEach(channel => {
                         const channelCard = document.createElement('div');
                         const formatNumber = (num) => num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
                         channelCard.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4 shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300";
@@ -300,29 +327,16 @@
                     <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">VSPO中文精華收集器</h1>
                 </header>
                 <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
-                    <div class="max-w-3xl mx-auto">
-                        <input
-                            type="text"
-                            id="search-input"
-                            placeholder="🔍 搜尋影片標題或頻道名稱..."
-                            value="${searchTerm}"
-                            class="w-full px-5 py-3 bg-gray-800 text-white border-2 border-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                        />
-                    </div>
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
-                        <span class="whitespace-nowrap">📊 預估配額餘額: <span class="font-semibold text-green-400">${estimatedQuota.toLocaleString()}</span></span>
+                        <span class="whitespace-nowrap">🔑 使用中金鑰: <span class="font-semibold text-sky-400">#${activeApiKeyIndex + 1}</span></span>
+                        <span class="whitespace-nowrap">📊 預估配額餘額: <span class="font-semibold text-green-400">${(estimatedQuota).toLocaleString()}</span></span>
                         ${lastUpdated ? `<span class="whitespace-nowrap">最後更新: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                         ${nextUpdate ? `<span class="whitespace-nowrap">下次更新: ${nextUpdate.toLocaleTimeString()}</span>` : ''}
                     </div>
                 </div>
                 <div>${contentHtml}</div>
             `;
-
             appContainer.appendChild(mainContainer);
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                state.searchTerm = e.target.value;
-                render();
-            });
         }
 
         async function fetchData() {
@@ -330,8 +344,8 @@
             state.apiError = null;
             render();
             try {
-                const { videos, cost } = await fetchFanVideosFromYouTube();
-                updateQuota(cost); // 更新配額
+                const { videos, cost } = await fetchWithKeyRotation();
+                updateQuota(cost);
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date();
             } catch (error) {
@@ -345,7 +359,6 @@
 
         function scheduleNextUpdate() {
              if (timeoutId) clearTimeout(timeoutId);
-             // ... (其餘排程邏輯不變) ...
             const now = new Date();
             let nextUpdateTime = null;
             for (const timeStr of UPDATE_SCHEDULE) {
@@ -373,7 +386,7 @@
         }
 
         // --- 應用程式啟動 ---
-        loadQuota(); // 啟動時讀取儲存的配額
+        loadQuota();
         fetchData().then(() => scheduleNextUpdate());
 
     </script>
