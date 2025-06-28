@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VSPO中文精華收集器</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #111827; }
-    </style>
+    <style> body { background-color: #111827; } </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
 
@@ -15,38 +13,34 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
-        
-        const SEARCH_KEYWORDS = ["VSPO中文", "VSPO中文精華", "VSPO精華", "VSPO中文剪輯", "VSPO剪輯"];
-        const OFFICIAL_CHANNEL_BLACKLIST = [
-          'UCuI5_lA2o-arAIKukGvIEcQ', 'UCGCb_d_H-A7A2y52M4S3W-w', 'UCyLGc23ry_p-zEAS_p_2qlg',
-        ];
-        const UPDATE_SCHEDULE = [
-          '00:01', '01:01', '02:01', '03:01', '04:01', '05:01', '06:01', '07:01', 
-          '08:01', '09:01', '10:01', '11:01', '11:31', '12:01', '12:31', '13:01', 
-          '14:01', '16:01', '17:01', '17:31', '18:01', '18:31', '19:01', '19:31', 
-          '20:01', '21:01', '22:01', '23:01'
-        ];
+        const PROXY_ENDPOINT = 'https://vvspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
             allVideos: [], isLoading: true, lastUpdated: null,
-            nextUpdate: null, apiError: null,
+            apiError: null,
         };
 
         const appContainer = document.getElementById('app');
-        let timeoutId = null;
-
+        
         // --- UI 元件產生器 ---
         function createSpinner() {
             const container = document.createElement('div');
             container.className = "flex flex-col items-center justify-center space-y-4 p-8";
-            container.innerHTML = `<div class="w-16 h-16 border-4 border-blue-400 border-t-transparent border-solid rounded-full animate-spin"></div><p class="text-lg text-gray-300">正在從代理伺服器獲取 VSPO 精華... ✨</p>`;
+            container.innerHTML = `<div class="w-16 h-16 border-4 border-blue-400 border-t-transparent border-solid rounded-full animate-spin"></div><p class="text-lg text-gray-300">正在獲取 VSPO 精華... ✨</p>`;
             return container;
         }
         function createErrorDisplay(error) {
             const container = document.createElement('div');
+            let errorMessage = error;
+            let errorHint = "請檢查代理伺服器是否正常運作，或稍後再試。";
+            
+            if (error && error.toLowerCase().includes('quota')) {
+                 errorMessage = "API 每日配額已用盡";
+                 errorHint = "請等待台灣時間下午 4 點後，配額將會自動重置。";
+            }
+
             container.className = "bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center";
-            container.innerHTML = `<strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${error}</p><p class="mt-2 text-sm">請檢查代理伺服器是否正常運作。</p>`;
+            container.innerHTML = `<strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p>`;
             return container;
         }
         function createVideoCard(video, showChannel = true) {
@@ -79,95 +73,23 @@
             return card;
         }
         
-        // --- API 請求邏輯 (已修改為呼叫代理) ---
-        const batchArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
-        
-        async function fetchViaProxy(endpoint, params) {
+        // --- API 請求邏輯 (已大幅簡化) ---
+        async function fetchAllDataFromProxy() {
+            console.log("向代理伺服器發送單一請求...");
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
-            url.searchParams.append('endpoint', endpoint);
-            for (const key in params) {
-                url.searchParams.append(key, params[key]);
-            }
             const response = await fetch(url);
+            
+            const data = await response.json();
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Proxy request failed with status ${response.status}`);
+                throw new Error(data.error || `Request failed with status ${response.status}`);
             }
-            return response.json();
+            console.log("成功從代理獲取資料！");
+            return data;
         }
 
-        async function fetchFanVideosFromYouTube() {
-            console.log("透過代理伺服器請求資料...");
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            const publishedAfter = oneMonthAgo.toISOString();
-
-            const searchPromises = SEARCH_KEYWORDS.map(keyword => 
-                fetchViaProxy('search', { part: 'snippet', q: keyword, type: 'video', maxResults: 50, publishedAfter: publishedAfter })
-            );
-            
-            const searchResults = await Promise.all(searchPromises);
-            const videoSnippets = new Map();
-            for (const result of searchResults) {
-                if (result.error) throw new Error(result.error.message);
-                if (result.items) {
-                    result.items.forEach(item => {
-                        if (item.id.videoId && !videoSnippets.has(item.id.videoId) && !OFFICIAL_CHANNEL_BLACKLIST.includes(item.snippet.channelId)) {
-                            videoSnippets.set(item.id.videoId, item.snippet);
-                        }
-                    });
-                }
-            }
-
-            const videoIds = Array.from(videoSnippets.keys());
-            if (videoIds.length === 0) return [];
-
-            const videoDetailBatches = batchArray(videoIds, 50);
-            const videoDetailPromises = videoDetailBatches.map(batch => 
-                fetchViaProxy('videos', { part: 'statistics,snippet', id: batch.join(',') })
-            );
-            const videoDetailResults = await Promise.all(videoDetailPromises);
-            
-            const videoDetailsMap = new Map();
-            videoDetailResults.forEach(result => {
-                if (result.error) throw new Error(result.error.message);
-                result.items?.forEach(item => videoDetailsMap.set(item.id, item));
-            });
-
-            const channelIds = [...new Set(Array.from(videoSnippets.values()).map(s => s.channelId))];
-            const channelDetailBatches = batchArray(channelIds, 50);
-            const channelDetailPromises = channelDetailBatches.map(batch => 
-                fetchViaProxy('channels', { part: 'statistics', id: batch.join(',') })
-            );
-            const channelDetailResults = await Promise.all(channelDetailPromises);
-
-            const channelStatsMap = new Map();
-            channelDetailResults.forEach(result => {
-                if (result.error) throw new Error(result.error.message);
-                result.items?.forEach(item => channelStatsMap.set(item.id, item.statistics));
-            });
-            
-            const finalVideos = videoIds.map(id => {
-                const detail = videoDetailsMap.get(id);
-                if (!detail) return null;
-                const channelStats = channelStatsMap.get(detail.snippet.channelId);
-                return {
-                    id: id, title: detail.snippet.title,
-                    thumbnail: detail.snippet.thumbnails.high?.url || detail.snippet.thumbnails.default?.url,
-                    channelId: detail.snippet.channelId, channelTitle: detail.snippet.channelTitle,
-                    publishedAt: detail.snippet.publishedAt,
-                    viewCount: detail.statistics ? parseInt(detail.statistics.viewCount, 10) : 0,
-                    subscriberCount: channelStats ? parseInt(channelStats.subscriberCount, 10) : 0,
-                };
-            }).filter(Boolean);
-            
-            console.log("代理請求成功！");
-            return finalVideos;
-        }
-
-        // --- 主應用程式邏輯與渲染 (已移除配額顯示) ---
+        // --- 主應用程式邏輯與渲染 ---
         function render() {
-            const { allVideos, isLoading, lastUpdated, nextUpdate, apiError } = state;
+            const { allVideos, isLoading, lastUpdated, apiError } = state;
             
             const recentVideos = allVideos.slice(0, 10);
             const channels = {};
@@ -186,47 +108,41 @@
             mainContainer.className = "container mx-auto px-4 py-8";
             
             let contentHtml;
-             if (isLoading && allVideos.length === 0) {
+             if (isLoading) {
                 contentHtml = createSpinner().outerHTML;
             } else if (apiError) {
                 contentHtml = createErrorDisplay(apiError).outerHTML;
+            } else if (allVideos.length === 0) {
+                 contentHtml = `<p class="text-center text-gray-400 p-8">找不到符合條件的影片，或代理伺服器的快取尚未建立。</p>`;
             } else {
                 const recentVideosSection = document.createElement('section');
                 const recentVideosGrid = document.createElement('div');
                 recentVideosGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                if(recentVideos.length > 0) {
-                   recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
-                } else {
-                   recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
-                }
+                recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
                 recentVideosSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4">最新精華影片</h2>`;
                 recentVideosSection.appendChild(recentVideosGrid);
 
                 const channelListSection = document.createElement('section');
                 const channelListContainer = document.createElement('div');
                 channelListContainer.className = 'space-y-6';
-                if(channelData.length > 0) {
-                    channelData.forEach(channel => {
-                        const channelCard = document.createElement('div');
-                        const formatNumber = (num) => num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
-                        channelCard.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4 shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300";
-                        channelCard.innerHTML = `
-                            <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
-                                <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="block mb-2">
-                                    <h3 class="text-xl font-bold hover:text-purple-400 transition-colors">${channel.name}</h3>
-                                </a>
-                                <p class="text-gray-400">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
-                            </div>`;
-                        const videoWrapper = document.createElement('div');
-                        videoWrapper.className = 'w-full md:w-2/3 lg:w-3/4';
-                        videoWrapper.innerHTML = `<p class="text-sm text-gray-400 mb-2">最新影片:</p>`;
-                        videoWrapper.appendChild(createVideoCard(channel.latestVideo, false));
-                        channelCard.appendChild(videoWrapper);
-                        channelListContainer.appendChild(channelCard);
-                    });
-                } else {
-                    channelListContainer.innerHTML = `<p class="text-gray-400">找不到符合條件的頻道。</p>`;
-                }
+                channelData.forEach(channel => {
+                    const channelCard = document.createElement('div');
+                    const formatNumber = (num) => num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
+                    channelCard.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4 shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300";
+                    channelCard.innerHTML = `
+                        <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
+                            <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="block mb-2">
+                                <h3 class="text-xl font-bold hover:text-purple-400 transition-colors">${channel.name}</h3>
+                            </a>
+                            <p class="text-gray-400">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
+                        </div>`;
+                    const videoWrapper = document.createElement('div');
+                    videoWrapper.className = 'w-full md:w-2/3 lg:w-3/4';
+                    videoWrapper.innerHTML = `<p class="text-sm text-gray-400 mb-2">最新影片:</p>`;
+                    videoWrapper.appendChild(createVideoCard(channel.latestVideo, false));
+                    channelCard.appendChild(videoWrapper);
+                    channelListContainer.appendChild(channelCard);
+                });
                 channelListSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4 mt-12">精華頻道列表</h2>`;
                 channelListSection.appendChild(channelListContainer);
                 
@@ -239,8 +155,7 @@
                 </header>
                 <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
-                        ${lastUpdated ? `<span class="whitespace-nowrap">最後更新: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
-                        ${nextUpdate ? `<span class="whitespace-nowrap">下次更新: ${nextUpdate.toLocaleTimeString()}</span>` : ''}
+                        ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                     </div>
                 </div>
                 <div>${contentHtml}</div>
@@ -248,24 +163,15 @@
             appContainer.appendChild(mainContainer);
         }
 
-        async function fetchData() {
+        async function initializeApp() {
             state.isLoading = true;
-            state.apiError = null;
             render();
-            
-            if (!PROXY_ENDPOINT || PROXY_ENDPOINT.includes('YOUR_VERCEL_APP_URL')) {
-                state.apiError = "代理伺服器網址尚未設定。";
-                state.isLoading = false;
-                render();
-                return;
-            }
-
             try {
-                const videos = await fetchFanVideosFromYouTube();
+                const videos = await fetchAllDataFromProxy();
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-                state.lastUpdated = new Date();
+                state.lastUpdated = new Date(); // 使用當前時間作為資料時間戳
             } catch (error) {
-                console.error("代理請求失敗:", error);
+                console.error("初始化失敗:", error);
                 state.apiError = error.message;
             } finally {
                 state.isLoading = false;
@@ -273,36 +179,7 @@
             }
         }
 
-        function scheduleNextUpdate() {
-             if (timeoutId) clearTimeout(timeoutId);
-            const now = new Date();
-            let nextUpdateTime = null;
-            for (const timeStr of UPDATE_SCHEDULE) {
-                const [hours, minutes] = timeStr.split(':').map(Number);
-                const candidateTime = new Date(now);
-                candidateTime.setHours(hours, minutes, 0, 0);
-                if (candidateTime > now) {
-                    nextUpdateTime = candidateTime;
-                    break;
-                }
-            }
-            if (!nextUpdateTime) {
-                const [hours, minutes] = UPDATE_SCHEDULE[0].split(':').map(Number);
-                nextUpdateTime = new Date();
-                nextUpdateTime.setDate(nextUpdateTime.getDate() + 1);
-                nextUpdateTime.setHours(hours, minutes, 0, 0);
-            }
-            state.nextUpdate = nextUpdateTime;
-            const msUntilNextUpdate = nextUpdateTime.getTime() - now.getTime();
-            console.log(`下一次更新排定於: ${nextUpdateTime.toLocaleString()}`);
-            timeoutId = setTimeout(() => {
-                fetchData().then(() => scheduleNextUpdate());
-            }, msUntilNextUpdate);
-            render();
-        }
-
-        // --- 應用程式啟動 ---
-        fetchData().then(() => scheduleNextUpdate());
+        initializeApp();
 
     </script>
 </body>
