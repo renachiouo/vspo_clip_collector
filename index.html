@@ -13,7 +13,6 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        // *** 已修正為您正確的、永久的代理伺服器網址 ***
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
@@ -54,16 +53,15 @@
                 return "剛剛";
             };
             const card = document.createElement('div');
-            card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
+            // *** 修正：在卡片容器加上 'group' 屬性，以配合圖片的 hover 效果 ***
+            card.className = "group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
             const channelLink = showChannel ? `<a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer"><p class="text-sm text-gray-400 mt-2 hover:text-white transition-colors">${video.channelTitle}</p></a>` : '';
             
-            // *** 這是關鍵的修正：將圖片連結和文字內容分開，並在圖片外層強制設定 16:9 比例 ***
+            // *** 這是關鍵的修正：讓 <a> 標籤本身成為 16:9 的容器 ***
             card.innerHTML = `
-                <div class="w-full aspect-video bg-gray-700">
-                    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer">
-                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
-                    </a>
-                </div>
+                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700 overflow-hidden">
+                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
+                </a>
                 <div class="p-4 flex flex-col flex-grow">
                     <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
                         <h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3>
