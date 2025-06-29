@@ -16,7 +16,12 @@
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
-            allVideos: [], isLoading: true, lastUpdated: null, apiError: null,
+            allVideos: [], 
+            isLoading: true, 
+            lastUpdated: null, 
+            apiError: null,
+            totalVisits: 0, // 由伺服器提供
+            todayVisits: 0,  // 由伺服器提供
         };
 
         const appContainer = document.getElementById('app');
@@ -80,15 +85,15 @@
             
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || `Request failed with status ${response.status}`);
+                throw new Error(data.error || `Proxy request failed with status ${response.status}`);
             }
             console.log("成功從代理獲取資料！");
             return data;
         }
-
+        
         // --- 主應用程式邏輯與渲染 ---
         function render() {
-            const { allVideos, isLoading, lastUpdated, apiError } = state;
+            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits } = state;
             
             const recentVideos = allVideos.slice(0, 10);
             
@@ -169,6 +174,8 @@
                 </header>
                 <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
+                        <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
+                        <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
                         ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                     </div>
                 </div>
@@ -185,6 +192,9 @@
                 const dataPackage = await fetchAllDataFromProxy();
                 state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp); // 使用伺服器提供的時間戳
+                // *** 從伺服器回傳的資料中更新訪問人次 ***
+                state.totalVisits = dataPackage.totalVisits || 0;
+                state.todayVisits = dataPackage.todayVisits || 0;
             } catch (error) {
                 console.error("初始化失敗:", error);
                 state.apiError = error.message;
