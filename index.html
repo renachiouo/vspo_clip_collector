@@ -5,7 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>れなち的VSPO中文精華收集處</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style> body { background-color: #111827; } </style>
+    <style> 
+        body { background-color: #111827; } 
+        /* Tooltip 樣式 */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 280px;
+            background-color: #1f2937; /* gray-800 */
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 10;
+            bottom: 150%;
+            left: 50%;
+            margin-left: -140px; /* Use half of the width to center the tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 1px solid #4b5563; /* gray-600 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        /* 在 hover 或 focus-within (適用於鍵盤和觸控) 時顯示 */
+        .tooltip:hover .tooltiptext,
+        .tooltip:focus-within .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
 
@@ -16,12 +58,8 @@
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
-            allVideos: [], 
-            isLoading: true, 
-            lastUpdated: null, 
-            apiError: null,
-            totalVisits: 0,
-            todayVisits: 0,
+            allVideos: [], isLoading: true, lastUpdated: null, apiError: null,
+            totalVisits: 0, todayVisits: 0,
         };
 
         const appContainer = document.getElementById('app');
@@ -47,7 +85,6 @@
             container.innerHTML = `<strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p>`;
             return container;
         }
-
         function createVideoCard(video, showChannel = true) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
@@ -129,7 +166,6 @@
         
         // --- API 請求邏輯 ---
         async function fetchAllDataFromProxy() {
-            // ... 內容不變 ...
             console.log("向代理伺服器發送單一請求...");
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
             const response = await fetch(url);
@@ -144,7 +180,6 @@
         
         // --- 主應用程式邏輯與渲染 ---
         function render() {
-            // ... 內容不變 ...
             const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits } = state;
             
             const recentVideos = allVideos.slice(0, 10);
@@ -174,7 +209,7 @@
             
             let contentHtml;
              if (isLoading) {
-                // Skeleton loading remains the same
+                // ... skeleton loading ...
              } else if (apiError) {
                 contentHtml = createErrorDisplay(apiError).outerHTML;
             } else if (allVideos.length === 0) {
@@ -188,7 +223,21 @@
                 } else {
                    recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
                 }
-                recentVideosSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4">最新精華影片</h2>`;
+                
+                // *** 這是關鍵的修正：使用簡化的 HTML 結構來確保 Tooltip 正常顯示 ***
+                const tooltipHtml = `
+                    <div class="tooltip ml-2">
+                        <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
+                        <div class="tooltiptext">
+                            <p class="font-semibold mb-2">說明：</p>
+                            <p>1. 伺服器快取每 30 分鐘更新一次。</p>
+                            <p>2. 為關鍵字搜尋，故可能出現：</p>
+                            <p class="pl-4">a. 含VSPO關鍵字的非VSPO烤肉</p>
+                            <p class="pl-4">b. 含中文關鍵字的外文剪輯</p>
+                        </div>
+                    </div>
+                `;
+                recentVideosSection.innerHTML = `<div class="flex items-center mb-6"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">最新精華影片</h2>${tooltipHtml}</div>`;
                 recentVideosSection.appendChild(recentVideosGrid);
 
                 const channelListSection = document.createElement('section');
@@ -201,7 +250,8 @@
                 } else {
                      channelListGrid.innerHTML = `<p class="text-gray-400">找不到過去30天內有更新的頻道。</p>`;
                 }
-                channelListSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2>`;
+
+                channelListSection.innerHTML = `<div class="flex items-baseline mb-6 gap-x-3"><h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p></div>`;
                 channelListSection.appendChild(channelListGrid);
                 
                 contentHtml = recentVideosSection.outerHTML + channelListSection.outerHTML;
@@ -225,8 +275,6 @@
 
         async function initializeApp() {
             state.isLoading = true;
-            // Removed skeleton rendering from here to simplify.
-            // A full render will happen after data is fetched.
             render(); 
             try {
                 const dataPackage = await fetchAllDataFromProxy();
