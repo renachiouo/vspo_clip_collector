@@ -13,7 +13,8 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const PROXY_ENDPOINT = 'https://vspo-proxy-dr2k0r3dp-renas-projects-c8ce958b.vercel.app'; 
+        // *** 已修正為您正確的、永久的代理伺服器網址 ***
+        const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
             allVideos: [], isLoading: true, lastUpdated: null, apiError: null,
@@ -80,7 +81,7 @@
             
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || `Request failed with status ${response.status}`);
+                throw new Error(data.error || `Proxy request failed with status ${response.status}`);
             }
             console.log("成功從代理獲取資料！");
             return data;
