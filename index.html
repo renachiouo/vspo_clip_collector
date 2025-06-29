@@ -20,19 +20,13 @@
             isLoading: true, 
             lastUpdated: null, 
             apiError: null,
-            totalVisits: 0, // 由伺服器提供
-            todayVisits: 0,  // 由伺服器提供
+            totalVisits: 0,
+            todayVisits: 0,
         };
 
         const appContainer = document.getElementById('app');
         
         // --- UI 元件產生器 ---
-        function createSpinner() {
-            const container = document.createElement('div');
-            container.className = "flex flex-col items-center justify-center space-y-4 p-8";
-            container.innerHTML = `<div class="w-16 h-16 border-4 border-blue-400 border-t-transparent border-solid rounded-full animate-spin"></div><p class="text-lg text-gray-300">正在獲取 VSPO 精華... ✨</p>`;
-            return container;
-        }
         function createErrorDisplay(error) {
             const container = document.createElement('div');
             let errorMessage = error;
@@ -76,7 +70,41 @@
                 </div>`;
             return card;
         }
-        
+
+        // *** 新增的骨架屏元件產生器 ***
+        function createVideoCardSkeleton() {
+            const card = document.createElement('div');
+            card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col";
+            card.innerHTML = `
+                <div class="w-full aspect-video bg-gray-700 animate-pulse"></div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <div class="h-4 bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div>
+                    <div class="h-4 bg-gray-700 rounded w-1/2 animate-pulse"></div>
+                    <div class="mt-auto pt-4 border-t border-gray-700 flex justify-between items-center">
+                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function createChannelCardSkeleton() {
+            const card = document.createElement('div');
+            card.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4";
+            card.innerHTML = `
+                <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0 animate-pulse">
+                    <div class="h-6 bg-gray-700 rounded w-3/4 mb-2"></div>
+                    <div class="h-4 bg-gray-700 rounded w-1/2"></div>
+                </div>
+                <div class="w-full md:w-2/3 lg:w-3/4">
+                    <div class="h-4 bg-gray-700 rounded w-1/4 mb-2 animate-pulse"></div>
+                    ${createVideoCardSkeleton().outerHTML}
+                </div>
+            `;
+            return card;
+        }
+
         // --- API 請求邏輯 ---
         async function fetchAllDataFromProxy() {
             console.log("向代理伺服器發送單一請求...");
@@ -85,7 +113,7 @@
             
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || `Proxy request failed with status ${response.status}`);
+                throw new Error(data.error || `Request failed with status ${response.status}`);
             }
             console.log("成功從代理獲取資料！");
             return data;
@@ -95,37 +123,51 @@
         function render() {
             const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits } = state;
             
-            const recentVideos = allVideos.slice(0, 10);
-            
-            const channels = {};
-            allVideos.forEach(video => {
-                if (!channels[video.channelId]) {
-                    channels[video.channelId] = {
-                        id: video.channelId, name: video.channelTitle,
-                        subscriberCount: video.subscriberCount, latestVideo: video,
-                    };
-                }
-            });
-
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const channelData = Object.values(channels)
-                .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
-                .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
-            
             appContainer.innerHTML = '';
             const mainContainer = document.createElement('div');
             mainContainer.className = "container mx-auto px-4 py-8";
             
             let contentHtml;
+            // *** 這是關鍵的修正：在載入時顯示骨架屏 ***
              if (isLoading) {
-                contentHtml = createSpinner().outerHTML;
+                const videoSkeletons = Array.from({ length: 10 }).map(() => createVideoCardSkeleton().outerHTML).join('');
+                const channelSkeletons = Array.from({ length: 4 }).map(() => createChannelCardSkeleton().outerHTML).join('');
+
+                const recentVideosSection = `
+                    <section>
+                        <h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4">最新精華影片</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">${videoSkeletons}</div>
+                    </section>`;
+
+                const channelListSection = `
+                    <section>
+                        <h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4 mt-12">精華頻道列表</h2>
+                        <div class="space-y-6">${channelSkeletons}</div>
+                    </section>`;
+                
+                contentHtml = recentVideosSection + channelListSection;
+
             } else if (apiError) {
                 contentHtml = createErrorDisplay(apiError).outerHTML;
             } else if (allVideos.length === 0) {
                  contentHtml = `<p class="text-center text-gray-400 p-8">找不到符合條件的影片，或代理伺服器的快取尚未建立。</p>`;
             } else {
+                const recentVideos = allVideos.slice(0, 10);
+                const channels = {};
+                allVideos.forEach(video => {
+                    if (!channels[video.channelId]) {
+                        channels[video.channelId] = {
+                            id: video.channelId, name: video.channelTitle,
+                            subscriberCount: video.subscriberCount, latestVideo: video,
+                        };
+                    }
+                });
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const channelData = Object.values(channels)
+                    .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
+                    .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
+
                 const recentVideosSection = document.createElement('section');
                 const recentVideosGrid = document.createElement('div');
                 recentVideosGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
@@ -188,11 +230,9 @@
             state.isLoading = true;
             render();
             try {
-                // *** 這是關鍵的修正：接收包含影片和時間戳的包裹 ***
                 const dataPackage = await fetchAllDataFromProxy();
                 state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-                state.lastUpdated = new Date(dataPackage.timestamp); // 使用伺服器提供的時間戳
-                // *** 從伺服器回傳的資料中更新訪問人次 ***
+                state.lastUpdated = new Date(dataPackage.timestamp);
                 state.totalVisits = dataPackage.totalVisits || 0;
                 state.todayVisits = dataPackage.todayVisits || 0;
             } catch (error) {
