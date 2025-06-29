@@ -53,11 +53,8 @@
                 return "剛剛";
             };
             const card = document.createElement('div');
-            // *** 修正：在卡片容器加上 'group' 屬性，以配合圖片的 hover 效果 ***
             card.className = "group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
             const channelLink = showChannel ? `<a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer"><p class="text-sm text-gray-400 mt-2 hover:text-white transition-colors">${video.channelTitle}</p></a>` : '';
-            
-            // *** 這是關鍵的修正：讓 <a> 標籤本身成為 16:9 的容器 ***
             card.innerHTML = `
                 <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700 overflow-hidden">
                     <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
@@ -83,7 +80,7 @@
             
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || `Proxy request failed with status ${response.status}`);
+                throw new Error(data.error || `Request failed with status ${response.status}`);
             }
             console.log("成功從代理獲取資料！");
             return data;
@@ -93,13 +90,10 @@
         function render() {
             const { allVideos, isLoading, lastUpdated, apiError } = state;
             
-            // 最新影片區塊的資料 (前10筆)
             const recentVideos = allVideos.slice(0, 10);
             
-            // --- 頻道列表區塊的資料處理 (已更新邏輯) ---
             const channels = {};
             allVideos.forEach(video => {
-                // 只記錄每個頻道最新的那部影片
                 if (!channels[video.channelId]) {
                     channels[video.channelId] = {
                         id: video.channelId, name: video.channelTitle,
@@ -112,9 +106,7 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
             const channelData = Object.values(channels)
-                // 1. 過濾：只保留30天內有更新的頻道
                 .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
-                // 2. 排序：按照最新影片的發布時間排序
                 .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
             
             appContainer.innerHTML = '';
@@ -189,10 +181,10 @@
             state.isLoading = true;
             render();
             try {
-                const videos = await fetchAllDataFromProxy();
-                // 在後端已經排序過了，但前端再次排序確保一致性
-                state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-                state.lastUpdated = new Date(); // 使用當前時間作為資料時間戳
+                // *** 這是關鍵的修正：接收包含影片和時間戳的包裹 ***
+                const dataPackage = await fetchAllDataFromProxy();
+                state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+                state.lastUpdated = new Date(dataPackage.timestamp); // 使用伺服器提供的時間戳
             } catch (error) {
                 console.error("初始化失敗:", error);
                 state.apiError = error.message;
