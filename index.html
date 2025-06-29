@@ -13,11 +13,10 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
+        const PROXY_ENDPOINT = 'https://vspo-proxy-dr2k0r3dp-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
-            allVideos: [], isLoading: true, lastUpdated: null,
-            apiError: null,
+            allVideos: [], isLoading: true, lastUpdated: null, apiError: null,
         };
 
         const appContainer = document.getElementById('app');
@@ -57,8 +56,8 @@
             card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
             const channelLink = showChannel ? `<a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer"><p class="text-sm text-gray-400 mt-2 hover:text-white transition-colors">${video.channelTitle}</p></a>` : '';
             card.innerHTML = `
-                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer">
-                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
+                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="aspect-video">
+                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
                 </a>
                 <div class="p-4 flex flex-col flex-grow">
                     <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
@@ -73,7 +72,7 @@
             return card;
         }
         
-        // --- API 請求邏輯 (已大幅簡化) ---
+        // --- API 請求邏輯 ---
         async function fetchAllDataFromProxy() {
             console.log("向代理伺服器發送單一請求...");
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
@@ -91,9 +90,13 @@
         function render() {
             const { allVideos, isLoading, lastUpdated, apiError } = state;
             
+            // 最新影片區塊的資料 (前10筆)
             const recentVideos = allVideos.slice(0, 10);
+            
+            // --- 頻道列表區塊的資料處理 (已更新邏輯) ---
             const channels = {};
             allVideos.forEach(video => {
+                // 只記錄每個頻道最新的那部影片
                 if (!channels[video.channelId]) {
                     channels[video.channelId] = {
                         id: video.channelId, name: video.channelTitle,
@@ -101,7 +104,15 @@
                     };
                 }
             });
-            const channelData = Object.values(channels).sort((a,b) => b.subscriberCount - a.subscriberCount);
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const channelData = Object.values(channels)
+                // 1. 過濾：只保留30天內有更新的頻道
+                .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
+                // 2. 排序：按照最新影片的發布時間排序
+                .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
             
             appContainer.innerHTML = '';
             const mainContainer = document.createElement('div');
@@ -118,31 +129,39 @@
                 const recentVideosSection = document.createElement('section');
                 const recentVideosGrid = document.createElement('div');
                 recentVideosGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
+                if(recentVideos.length > 0) {
+                   recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
+                } else {
+                   recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
+                }
                 recentVideosSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4">最新精華影片</h2>`;
                 recentVideosSection.appendChild(recentVideosGrid);
 
                 const channelListSection = document.createElement('section');
                 const channelListContainer = document.createElement('div');
                 channelListContainer.className = 'space-y-6';
-                channelData.forEach(channel => {
-                    const channelCard = document.createElement('div');
-                    const formatNumber = (num) => num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
-                    channelCard.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4 shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300";
-                    channelCard.innerHTML = `
-                        <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
-                            <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="block mb-2">
-                                <h3 class="text-xl font-bold hover:text-purple-400 transition-colors">${channel.name}</h3>
-                            </a>
-                            <p class="text-gray-400">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
-                        </div>`;
-                    const videoWrapper = document.createElement('div');
-                    videoWrapper.className = 'w-full md:w-2/3 lg:w-3/4';
-                    videoWrapper.innerHTML = `<p class="text-sm text-gray-400 mb-2">最新影片:</p>`;
-                    videoWrapper.appendChild(createVideoCard(channel.latestVideo, false));
-                    channelCard.appendChild(videoWrapper);
-                    channelListContainer.appendChild(channelCard);
-                });
+                 if(channelData.length > 0) {
+                    channelData.forEach(channel => {
+                        const channelCard = document.createElement('div');
+                        const formatNumber = (num) => num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
+                        channelCard.className = "bg-gray-800 p-4 rounded-lg flex flex-col md:flex-row items-start gap-4 shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300";
+                        channelCard.innerHTML = `
+                            <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
+                                <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="block mb-2">
+                                    <h3 class="text-xl font-bold hover:text-purple-400 transition-colors">${channel.name}</h3>
+                                </a>
+                                <p class="text-gray-400">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
+                            </div>`;
+                        const videoWrapper = document.createElement('div');
+                        videoWrapper.className = 'w-full md:w-2/3 lg:w-3/4';
+                        videoWrapper.innerHTML = `<p class="text-sm text-gray-400 mb-2">最新影片:</p>`;
+                        videoWrapper.appendChild(createVideoCard(channel.latestVideo, false));
+                        channelCard.appendChild(videoWrapper);
+                        channelListContainer.appendChild(channelCard);
+                    });
+                } else {
+                     channelListContainer.innerHTML = `<p class="text-gray-400">找不到過去30天內有更新的頻道。</p>`;
+                }
                 channelListSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4 mt-12">精華頻道列表</h2>`;
                 channelListSection.appendChild(channelListContainer);
                 
@@ -168,6 +187,7 @@
             render();
             try {
                 const videos = await fetchAllDataFromProxy();
+                // 在後端已經排序過了，但前端再次排序確保一致性
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(); // 使用當前時間作為資料時間戳
             } catch (error) {
