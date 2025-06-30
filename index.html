@@ -47,6 +47,9 @@
             visibility: visible;
             opacity: 1;
         }
+        .secret-trigger {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -58,8 +61,12 @@
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
-            allVideos: [], isLoading: true, lastUpdated: null, apiError: null,
-            totalVisits: 0, todayVisits: 0,
+            allVideos: [], 
+            isLoading: true, 
+            lastUpdated: null, 
+            apiError: null,
+            totalVisits: 0,
+            todayVisits: 0,
         };
 
         const appContainer = document.getElementById('app');
@@ -165,14 +172,19 @@
         }
         
         // --- API 請求邏輯 ---
-        async function fetchAllDataFromProxy() {
-            console.log("向代理伺服器發送單一請求...");
+        async function fetchAllDataFromProxy(force = false, password = '') {
+            console.log(`向代理伺服器發送請求... 強制更新: ${force}`);
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
+            if (force) {
+                url.searchParams.append('force_refresh', 'true');
+                url.searchParams.append('password', password);
+            }
+            
             const response = await fetch(url);
             
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || `Proxy request failed with status ${response.status}`);
+                throw new Error(data.error || `Request failed with status ${response.status}`);
             }
             console.log("成功從代理獲取資料！");
             return data;
@@ -224,7 +236,6 @@
                    recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
                 }
                 
-                // *** 這是關鍵的修正：使用簡化的 HTML 結構來確保 Tooltip 正常顯示 ***
                 const tooltipHtml = `
                     <div class="tooltip ml-2">
                         <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
@@ -259,11 +270,13 @@
 
             mainContainer.innerHTML = `
                 <header class="text-center mb-8">
-                    <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">れなち的VSPO中文精華收集處</h1>
+                    <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">
+                        <span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處
+                    </h1>
                 </header>
                 <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
-                        <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
+                        <span class="whitespace-nowrap">  總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
                         <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
                         ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                     </div>
@@ -271,13 +284,14 @@
                 <div>${contentHtml}</div>
             `;
             appContainer.appendChild(mainContainer);
+            setupSecretTrigger(); 
         }
 
-        async function initializeApp() {
+        async function initializeApp(force = false, password = '') {
             state.isLoading = true;
             render(); 
             try {
-                const dataPackage = await fetchAllDataFromProxy();
+                const dataPackage = await fetchAllDataFromProxy(force, password);
                 state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp);
                 state.totalVisits = dataPackage.totalVisits || 0;
@@ -285,10 +299,48 @@
             } catch (error) {
                 console.error("初始化失敗:", error);
                 state.apiError = error.message;
+                alert(`錯誤: ${error.message}`); // 如果強制更新失敗，彈出提示
             } finally {
                 state.isLoading = false;
                 render();
             }
+        }
+        
+        function setupSecretTrigger() {
+            let sequence = [];
+            let lastClickTime = 0;
+            const targetSequence = ['れ', 'な', 'ち'];
+
+            document.querySelectorAll('.secret-trigger').forEach(span => {
+                span.addEventListener('click', (e) => {
+                    const char = e.target.dataset.char;
+                    const now = Date.now();
+
+                    // 如果距離上次點擊超過 3 秒，重置序列
+                    if (now - lastClickTime > 3000) {
+                        sequence = [];
+                    }
+
+                    sequence.push(char);
+                    lastClickTime = now;
+
+                    // 檢查序列是否匹配
+                    if (sequence.join('') === targetSequence.join('')) {
+                        console.log("秘密通道已觸發！");
+                        const password = prompt("請輸入管理員密碼以強制更新快取：");
+                        if (password) {
+                            initializeApp(true, password);
+                        }
+                        sequence = []; // 重置序列
+                    }
+
+                    if (sequence.length >= targetSequence.length) {
+                       if(sequence.join('') !== targetSequence.join('')) {
+                           sequence = [];
+                       }
+                    }
+                });
+            });
         }
 
         initializeApp();
@@ -296,3 +348,4 @@
     </script>
 </body>
 </html>
+ 
