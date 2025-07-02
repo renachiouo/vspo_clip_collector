@@ -7,48 +7,46 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style> 
         body { background-color: #111827; } 
-        /* Tooltip 樣式 */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
+        .tooltip { position: relative; display: inline-block; }
         .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 280px;
-            background-color: #1f2937; /* gray-800 */
-            color: #fff;
-            text-align: left;
-            border-radius: 6px;
-            padding: 12px;
-            position: absolute;
-            z-index: 10;
-            bottom: 150%;
-            left: 50%;
-            margin-left: -140px; /* Use half of the width to center the tooltip */
-            opacity: 0;
-            transition: opacity 0.3s;
-            border: 1px solid #4b5563; /* gray-600 */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            visibility: hidden; width: 280px; background-color: #1f2937;
+            color: #fff; text-align: left; border-radius: 6px; padding: 12px;
+            position: absolute; z-index: 10; bottom: 150%; left: 50%;
+            margin-left: -140px; opacity: 0; transition: opacity 0.3s;
+            border: 1px solid #4b5563; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             pointer-events: none;
         }
         .tooltip .tooltiptext::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
+            content: ""; position: absolute; top: 100%; left: 50%;
+            margin-left: -5px; border-width: 5px; border-style: solid;
             border-color: #1f2937 transparent transparent transparent;
         }
-        /* 在 hover 或 focus-within (適用於鍵盤和觸控) 時顯示 */
-        .tooltip:hover .tooltiptext,
-        .tooltip:focus-within .tooltiptext {
-            visibility: visible;
-            opacity: 1;
+        .tooltip:hover .tooltiptext, .tooltip:focus-within .tooltiptext {
+            visibility: visible; opacity: 1;
         }
-        .secret-trigger {
-            cursor: pointer;
+        .secret-trigger { cursor: pointer; }
+        /* 分頁與頁籤按鈕樣式 */
+        .tab-btn {
+            padding: 0.5rem 1rem; border-radius: 0.375rem;
+            background-color: #374151; color: #d1d5db;
+            transition: background-color 0.2s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background-color: #4f46e5; color: #fff;
+        }
+        .pagination-btn {
+            padding: 0.5rem 1rem; border: 1px solid #4b5563;
+            background-color: #374151; color: #d1d5db;
+            border-radius: 0.375rem; transition: background-color 0.2s;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #4f46e5;
+        }
+        .pagination-btn.active {
+            background-color: #4f46e5; color: #fff; border-color: #4f46e5;
+        }
+        .pagination-btn:disabled {
+            opacity: 0.5; cursor: not-allowed;
         }
     </style>
 </head>
@@ -67,6 +65,9 @@
             apiError: null,
             totalVisits: 0,
             todayVisits: 0,
+            activeView: 'latest', // 'latest' 或 'all'
+            currentPage: 1,
+            itemsPerPage: 10,
         };
 
         const appContainer = document.getElementById('app');
@@ -121,8 +122,8 @@
                 </div>`;
             return card;
         }
-
-        function createChannelGridCard(channel) {
+        
+        function createVideoListItem(video) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
                 const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
@@ -132,12 +133,34 @@
                 }
                 return "剛剛";
             };
+            const item = document.createElement('div');
+            item.className = "flex items-center space-x-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors duration-200";
+            item.innerHTML = `
+                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 w-32 aspect-video bg-gray-700 rounded-md overflow-hidden">
+                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/128x72/1a202c/e53e3e?text=Error';">
+                </a>
+                <div class="flex-1 min-w-0">
+                    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer">
+                        <h3 class="font-semibold text-gray-100 truncate hover:text-cyan-400">${video.title}</h3>
+                    </a>
+                    <a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 mt-1">
+                        <img src="${video.channelAvatarUrl}" class="w-5 h-5 rounded-full bg-gray-700">
+                        <p class="text-sm text-gray-400 hover:text-white truncate">${video.channelTitle}</p>
+                    </a>
+                    <div class="flex justify-between items-center text-xs text-gray-500 mt-2">
+                        <span>${formatNumber(video.viewCount)} 次觀看</span>
+                        <span>${timeAgo(video.publishedAt)}</span>
+                    </div>
+                </div>
+            `;
+            return item;
+        }
 
+        function createChannelGridCard(channel) {
+            const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const card = document.createElement('div');
             card.className = "group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300 flex flex-col";
-            
             const video = channel.latestVideo;
-
             card.innerHTML = `
                 <div class="p-4">
                     <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-3">
@@ -158,58 +181,25 @@
                     </a>
                     <div class="flex justify-between items-center text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
                         <span>${formatNumber(video.viewCount)} 次觀看</span>
-                        <span>${timeAgo(video.publishedAt)}</span>
-                    </div>
-                </div>
-            `;
-            return card;
-        }
-
-        // *** 骨架屏元件產生器 ***
-        function createVideoCardSkeleton() {
-            const card = document.createElement('div');
-            card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col";
-            card.innerHTML = `
-                <div class="w-full aspect-video bg-gray-700 animate-pulse"></div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <div class="h-4 bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div>
-                    <div class="h-4 bg-gray-700 rounded w-1/2 animate-pulse"></div>
-                    <div class="mt-auto pt-4 border-t border-gray-700 flex justify-between items-center">
-                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
-                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
-                    </div>
-                </div>
-            `;
-            return card;
-        }
-
-        function createChannelGridCardSkeleton() {
-             const card = document.createElement('div');
-            card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col";
-            card.innerHTML = `
-                <div class="p-4 animate-pulse">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 rounded-full bg-gray-700 flex-shrink-0"></div>
-                        <div class="flex-1 min-w-0 space-y-2">
-                            <div class="h-5 bg-gray-700 rounded w-3/4"></div>
-                            <div class="h-4 bg-gray-700 rounded w-1/2"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="px-4 h-4 bg-gray-700 rounded w-1/4 mb-2 ml-4 animate-pulse"></div>
-                <div class="w-full aspect-video bg-gray-700 animate-pulse mt-2"></div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <div class="h-4 bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div>
-                    <div class="h-4 bg-gray-700 rounded w-1/2 animate-pulse"></div>
-                    <div class="mt-auto pt-4 border-t border-gray-700 flex justify-between items-center">
-                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
-                        <div class="h-3 bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                        <span>${new Date(video.publishedAt).toLocaleDateString()}</span>
                     </div>
                 </div>
             `;
             return card;
         }
         
+        function createSkeleton(type) {
+            const skeleton = document.createElement('div');
+            if (type === 'card') {
+                skeleton.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col";
+                skeleton.innerHTML = `<div class="w-full aspect-video bg-gray-700 animate-pulse"></div><div class="p-4"><div class="h-4 bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div><div class="h-4 bg-gray-700 rounded w-1/2 animate-pulse"></div></div>`;
+            } else if (type === 'list') {
+                skeleton.className = "flex items-center space-x-4 p-3 bg-gray-800 rounded-lg animate-pulse";
+                skeleton.innerHTML = `<div class="w-32 h-[72px] bg-gray-700 rounded-md"></div><div class="flex-1 space-y-2"><div class="h-4 bg-gray-700 rounded w-5/6"></div><div class="h-4 bg-gray-700 rounded w-1/3"></div><div class="h-3 bg-gray-700 rounded w-1/2"></div></div>`;
+            }
+            return skeleton;
+        }
+
         // --- API 請求邏輯 ---
         async function fetchAllDataFromProxy(force = false, password = '') {
             console.log(`向代理伺服器發送請求... 強制更新: ${force}`);
@@ -218,58 +208,111 @@
                 url.searchParams.append('force_refresh', 'true');
                 url.searchParams.append('password', password);
             }
-            
             const response = await fetch(url);
-            
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || `Request failed with status ${response.status}`);
-            }
+            if (!response.ok) throw new Error(data.error || `Request failed with status ${response.status}`);
             console.log("成功從代理獲取資料！");
             return data;
         }
         
         // --- 主應用程式邏輯與渲染 ---
         function render() {
-            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits } = state;
+            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage } = state;
             
             appContainer.innerHTML = '';
             const mainContainer = document.createElement('div');
             mainContainer.className = "container mx-auto px-4 py-8";
             
             let contentHtml;
-             if (isLoading) {
-                const videoSkeletons = Array.from({ length: 10 }).map(() => createVideoCardSkeleton().outerHTML).join('');
-                const channelSkeletons = Array.from({ length: 5 }).map(() => createChannelGridCardSkeleton().outerHTML).join('');
-
-                const recentVideosSection = `
-                    <section>
-                        <h2 class="text-3xl font-bold mb-6 border-l-4 border-cyan-400 pl-4">最新精華影片</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">${videoSkeletons}</div>
-                    </section>`;
-
-                const channelListSection = `
-                    <section>
-                        <div class="flex items-baseline mb-6 gap-x-3"><h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">${channelSkeletons}</div>
-                    </section>`;
-                
-                contentHtml = recentVideosSection + channelListSection;
-
+            if (isLoading) {
+                const videoSkeletons = Array.from({ length: 10 }).map(() => createSkeleton('card').outerHTML).join('');
+                contentHtml = `<section style="min-height: 600px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">${videoSkeletons}</div></section>`;
             } else if (apiError) {
                 contentHtml = createErrorDisplay(apiError).outerHTML;
             } else if (allVideos.length === 0) {
                  contentHtml = `<p class="text-center text-gray-400 p-8">找不到符合條件的影片，或代理伺服器的快取尚未建立。</p>`;
             } else {
-                const recentVideos = allVideos.slice(0, 10);
+                // --- 影片區塊渲染 ---
+                const videosSection = document.createElement('section');
+                const videosHeader = document.createElement('div');
+                videosHeader.className = "flex items-center justify-between mb-6";
+                videosHeader.innerHTML = `
+                    <div class="flex items-center">
+                        <h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2>
+                        <div class="tooltip ml-2">
+                            <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
+                            <div class="tooltiptext">
+                                <p class="font-semibold mb-2">說明：</p>
+                                <p>1. 伺服器快取每 30 分鐘更新一次。</p>
+                                <p>2. 為關鍵字搜尋，故可能出現：</p>
+                                <p class="pl-4">a. 含VSPO關鍵字的非VSPO烤肉</p>
+                                <p class="pl-4">b. 含中文關鍵字的外文剪輯</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">最新十部</button>
+                        <button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button>
+                    </div>
+                `;
+                videosSection.appendChild(videosHeader);
+
+                const viewContainer = document.createElement('div');
+                viewContainer.style.minHeight = '720px'; 
+                
+                if (activeView === 'latest') {
+                    const grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
+                    allVideos.slice(0, 10).forEach(video => grid.appendChild(createVideoCard(video)));
+                    viewContainer.appendChild(grid);
+                } else { // activeView === 'all'
+                    const listContainer = document.createElement('div');
+                    listContainer.className = 'space-y-3';
+                    const totalPages = Math.ceil(allVideos.length / itemsPerPage);
+                    const startIndex = (currentPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedVideos = allVideos.slice(startIndex, endIndex);
+                    
+                    paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
+                    viewContainer.appendChild(listContainer);
+
+                    const paginationContainer = document.createElement('div');
+                    paginationContainer.className = 'flex justify-center items-center space-x-2 mt-8';
+                    
+                    const prevBtn = document.createElement('button');
+                    prevBtn.id = 'prev-page-btn';
+                    prevBtn.className = 'pagination-btn';
+                    prevBtn.textContent = '‹';
+                    if (currentPage === 1) prevBtn.disabled = true;
+                    paginationContainer.appendChild(prevBtn);
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        const pageBtn = document.createElement('button');
+                        pageBtn.className = `pagination-btn page-number-btn ${i === currentPage ? 'active' : ''}`;
+                        pageBtn.textContent = i;
+                        pageBtn.dataset.page = i;
+                        paginationContainer.appendChild(pageBtn);
+                    }
+
+                    const nextBtn = document.createElement('button');
+                    nextBtn.id = 'next-page-btn';
+                    nextBtn.className = 'pagination-btn';
+                    nextBtn.textContent = '›';
+                    if (currentPage === totalPages) nextBtn.disabled = true;
+                    paginationContainer.appendChild(nextBtn);
+
+                    viewContainer.appendChild(paginationContainer);
+                }
+                videosSection.appendChild(viewContainer);
+                
+                // --- 頻道列表區塊渲染 ---
                 const channels = {};
                 allVideos.forEach(video => {
                     if (!channels[video.channelId]) {
                         channels[video.channelId] = {
                             id: video.channelId, name: video.channelTitle,
                             subscriberCount: video.subscriberCount, 
-                            latestVideo: video,
-                            avatarUrl: video.channelAvatarUrl
+                            latestVideo: video, avatarUrl: video.channelAvatarUrl
                         };
                     }
                 });
@@ -279,45 +322,18 @@
                     .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
                     .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
 
-                const recentVideosSection = document.createElement('section');
-                const recentVideosGrid = document.createElement('div');
-                recentVideosGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                if(recentVideos.length > 0) {
-                   recentVideos.forEach(video => recentVideosGrid.appendChild(createVideoCard(video)));
-                } else {
-                   recentVideosGrid.innerHTML = `<p class="text-gray-400">找不到符合條件的影片。</p>`;
-                }
-                
-                const tooltipHtml = `
-                    <div class="tooltip ml-2">
-                        <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
-                        <div class="tooltiptext">
-                            <p class="font-semibold mb-2">說明：</p>
-                            <p>1. 伺服器快取每 30 分鐘更新一次。</p>
-                            <p>2. 為關鍵字搜尋，故可能出現：</p>
-                            <p class="pl-4">a. 含VSPO關鍵字的非VSPO烤肉</p>
-                            <p class="pl-4">b. 含中文關鍵字的外文剪輯</p>
-                        </div>
-                    </div>
-                `;
-                recentVideosSection.innerHTML = `<div class="flex items-center mb-6"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">最新精華影片</h2>${tooltipHtml}</div>`;
-                recentVideosSection.appendChild(recentVideosGrid);
-
                 const channelListSection = document.createElement('section');
                 const channelListGrid = document.createElement('div');
                 channelListGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
                 if(channelData.length > 0) {
-                    channelData.forEach(channel => {
-                        channelListGrid.appendChild(createChannelGridCard(channel));
-                    });
+                    channelData.forEach(channel => channelListGrid.appendChild(createChannelGridCard(channel)));
                 } else {
                      channelListGrid.innerHTML = `<p class="text-gray-400">找不到過去30天內有更新的頻道。</p>`;
                 }
-
                 channelListSection.innerHTML = `<div class="flex items-baseline mb-6 gap-x-3"><h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p></div>`;
                 channelListSection.appendChild(channelListGrid);
                 
-                contentHtml = recentVideosSection.outerHTML + channelListSection.outerHTML;
+                contentHtml = videosSection.outerHTML + channelListSection.outerHTML;
             }
 
             mainContainer.innerHTML = `
@@ -336,7 +352,39 @@
                 <div>${contentHtml}</div>
             `;
             appContainer.appendChild(mainContainer);
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
             setupSecretTrigger();
+            document.getElementById('view-latest-btn')?.addEventListener('click', () => {
+                state.activeView = 'latest';
+                render();
+            });
+            document.getElementById('view-all-btn')?.addEventListener('click', () => {
+                state.activeView = 'all';
+                state.currentPage = 1;
+                render();
+            });
+            document.getElementById('prev-page-btn')?.addEventListener('click', () => {
+                if(state.currentPage > 1) {
+                    state.currentPage--;
+                    render();
+                }
+            });
+            document.getElementById('next-page-btn')?.addEventListener('click', () => {
+                const totalPages = Math.ceil(state.allVideos.length / state.itemsPerPage);
+                if(state.currentPage < totalPages) {
+                    state.currentPage++;
+                    render();
+                }
+            });
+            document.querySelectorAll('.page-number-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    state.currentPage = parseInt(e.target.dataset.page, 10);
+                    render();
+                });
+            });
         }
 
         async function initializeApp(force = false, password = '') {
@@ -351,7 +399,7 @@
             } catch (error) {
                 console.error("初始化失敗:", error);
                 state.apiError = error.message;
-                if (force) alert(`錯誤: ${error.message}`); // 只在強制更新失敗時彈出提示
+                if (force) alert(`錯誤: ${error.message}`);
             } finally {
                 state.isLoading = false;
                 render();
@@ -367,27 +415,17 @@
                 span.addEventListener('click', (e) => {
                     const char = e.target.dataset.char;
                     const now = Date.now();
-
-                    if (now - lastClickTime > 3000) {
-                        sequence = [];
-                    }
-
+                    if (now - lastClickTime > 3000) sequence = [];
                     sequence.push(char);
                     lastClickTime = now;
-
                     if (sequence.join('') === targetSequence.join('')) {
                         console.log("秘密通道已觸發！");
                         const password = prompt("請輸入管理員密碼以強制更新快取：");
-                        if (password) {
-                            initializeApp(true, password);
-                        }
+                        if (password) initializeApp(true, password);
                         sequence = [];
                     }
-
-                    if (sequence.length >= targetSequence.length) {
-                       if(sequence.join('') !== targetSequence.join('')) {
-                           sequence = [];
-                       }
+                    if (sequence.length >= targetSequence.length && sequence.join('') !== targetSequence.join('')) {
+                       sequence = [];
                     }
                 });
             });
