@@ -21,7 +21,7 @@
             border-radius: 6px;
             padding: 12px;
             position: absolute;
-            z-index: 10;
+            z-index: 30; /* 提高 z-index 層級，確保在最上層 */
             bottom: 150%;
             left: 50%;
             margin-left: -140px; /* Use half of the width to center the tooltip */
@@ -424,7 +424,7 @@
                         <span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處
                     </h1>
                 </header>
-                <div class="sticky top-0 z-20 bg-gray-900/70 backdrop-blur py-4 mb-8">
+                <div class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
                         <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
                         <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
