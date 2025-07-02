@@ -204,31 +204,39 @@
             };
 
             const card = document.createElement('div');
-            card.className = "group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300 flex flex-col";
+            // 使用相對定位，並設定背景圖片
+            card.className = "group rounded-lg overflow-hidden shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300 relative";
+            card.style.backgroundImage = `url('${channel.avatarUrl}')`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
             
             const video = channel.latestVideo;
 
+            // 疊加層 (用於模糊和變暗) 和內容容器
             card.innerHTML = `
-                <div class="p-4">
-                    <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-3">
-                        <img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p>
-                            <p class="text-sm text-gray-400">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
+                <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-md"></div>
+                <div class="relative z-10 flex flex-col h-full">
+                    <div class="p-4">
+                        <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-3">
+                            <img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 flex-shrink-0 border-2 border-white/20">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p>
+                                <p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="px-4 text-sm text-gray-400">最新影片:</div>
+                    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2">
+                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
+                    </a>
+                    <div class="p-4 flex flex-col flex-grow mt-auto">
+                        <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
+                            <h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3>
+                        </a>
+                        <div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50">
+                            <span>${formatNumber(video.viewCount)} 次觀看</span>
+                            <span>${timeAgo(video.publishedAt)}</span>
                         </div>
-                    </a>
-                </div>
-                <div class="px-4 text-sm text-gray-400">最新影片:</div>
-                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700 overflow-hidden mt-2">
-                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
-                </a>
-                <div class="p-4 flex flex-col flex-grow">
-                    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
-                        <h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3>
-                    </a>
-                    <div class="flex justify-between items-center text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
-                        <span>${formatNumber(video.viewCount)} 次觀看</span>
-                        <span>${timeAgo(video.publishedAt)}</span>
                     </div>
                 </div>
             `;
@@ -416,7 +424,7 @@
                         <span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處
                     </h1>
                 </header>
-                <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
+                <div class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
                     <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
                         <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
                         <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
