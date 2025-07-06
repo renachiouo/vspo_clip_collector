@@ -303,11 +303,12 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            listContainer.className = 'grid grid-cols-1 gap-y-2';
+            // 手機上橫向滾動，電腦上垂直網格
+            listContainer.className = 'flex flex-row space-x-2 md:grid md:grid-cols-1 md:gap-y-2 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
 
             // 「顯示全部」按鈕
             const allBtn = document.createElement('button');
-            allBtn.className = `filter-btn ${activeFilter === 'all' ? 'active' : ''}`;
+            allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
             allBtn.dataset.filter = 'all';
             allBtn.textContent = '顯示全部';
             listContainer.appendChild(allBtn);
@@ -317,7 +318,7 @@
                 const btn = document.createElement('button');
                 const isActive = activeFilter === member.name_jp;
                 
-                btn.className = `filter-btn ${isActive ? 'active' : ''}`;
+                btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
                 btn.dataset.filter = member.name_jp;
                 
                 // 設定背景色和文字顏色
@@ -418,19 +419,19 @@
             const mainGrid = document.createElement('div');
             mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[max-content_1fr] gap-8";
 
-            // --- 左側篩選列 ---
-            const leftSidebar = document.createElement('aside');
-            leftSidebar.className = ""; // 移除 col-span
+            // --- 左側篩選列 (手機版為頂部) ---
+            const filterSection = document.createElement('aside');
+            filterSection.className = "md:col-start-1"; // 在電腦版，此為左側欄
             const filterContainer = document.createElement('div');
-            // 讓篩選列在電腦版 sticky
+            // 在手機上，它只是一個普通的 div；在電腦上，它會變成 sticky
             filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28";
             filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
             filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
-            leftSidebar.appendChild(filterContainer);
+            filterSection.appendChild(filterContainer);
 
             // --- 右側主內容 ---
             const rightContent = document.createElement('main');
-            rightContent.className = ""; // 移除 col-span
+            rightContent.className = "md:col-start-2"; // 在電腦版，此為右側欄
 
             if (isLoading) {
                 const videoSkeletons = Array.from({ length: 10 }).map(() => createSkeleton('card').outerHTML).join('');
@@ -512,7 +513,7 @@
             }
 
             // --- 組合頁面 ---
-            mainGrid.appendChild(leftSidebar);
+            mainGrid.appendChild(filterSection);
             mainGrid.appendChild(rightContent);
             appContainer.appendChild(header);
             appContainer.appendChild(topBar);
