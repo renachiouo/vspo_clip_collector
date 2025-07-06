@@ -21,10 +21,10 @@
             border-radius: 6px;
             padding: 12px;
             position: absolute;
-            z-index: 30; /* 提高 z-index 層級，確保在最上層 */
+            z-index: 30; /* 提高 z-index 層級 */
             bottom: 150%;
             left: 50%;
-            margin-left: -140px; /* Use half of the width to center the tooltip */
+            margin-left: -140px;
             opacity: 0;
             transition: opacity 0.3s;
             border: 1px solid #4b5563; /* gray-600 */
@@ -41,16 +41,13 @@
             border-style: solid;
             border-color: #1f2937 transparent transparent transparent;
         }
-        /* 在 hover 或 focus-within (適用於鍵盤和觸控) 時顯示 */
         .tooltip:hover .tooltiptext,
         .tooltip:focus-within .tooltiptext {
             visibility: visible;
             opacity: 1;
         }
-        .secret-trigger {
-            cursor: pointer;
-        }
-        /* 分頁與頁籤按鈕樣式 */
+        .secret-trigger { cursor: pointer; }
+        /* 按鈕樣式 */
         .tab-btn {
             padding: 0.5rem 1rem; border-radius: 0.375rem;
             background-color: #374151; color: #d1d5db;
@@ -60,30 +57,52 @@
             background-color: #4f46e5; color: #fff;
         }
         .pagination-btn {
-            min-width: 2.5rem; /* 確保按鈕有最小寬度 */
-            padding: 0.5rem; 
+            min-width: 2.5rem; padding: 0.5rem; 
             border: 1px solid #4b5563;
             background-color: #374151; color: #d1d5db;
             border-radius: 0.375rem; transition: background-color 0.2s;
             text-align: center;
         }
-        .pagination-btn:hover:not(:disabled) {
-            background-color: #4f46e5;
-        }
-        .pagination-btn.active {
-            background-color: #4f46e5; color: #fff; border-color: #4f46e5;
-        }
-        .pagination-btn:disabled {
-            opacity: 0.5; cursor: not-allowed;
-        }
+        .pagination-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        .pagination-btn.active { background-color: #4f46e5; color: #fff; border-color: #4f46e5; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .pagination-ellipsis {
-            display: flex;
+            display: flex; align-items: center; justify-content: center;
+            min-width: 2.5rem; padding: 0.5rem; color: #9ca3af;
+        }
+        /* 成員篩選標籤樣式 */
+        .filter-btn {
+            display: flex; /* 使用 flex 確保內部對齊 */
             align-items: center;
             justify-content: center;
-            min-width: 2.5rem;
-            padding: 0.5rem;
-            color: #9ca3af;
+            padding: 0.6rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 600; /* font-semibold */
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap; /* 防止文字換行 */
         }
+        .filter-btn:hover {
+            transform: scale(1.03); /* 滑鼠懸停時放大 */
+        }
+        /* 「顯示全部」按鈕的特定樣式 */
+        .filter-btn[data-filter="all"] {
+            background-color: #4b5563; /* gray-600 */
+            color: #ffffff;
+        }
+        .filter-btn[data-filter="all"].active {
+            background-color: #6366f1; /* indigo-500 */
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            transform: scale(1.02);
+        }
+        /* 所有按鈕在啟用時的通用樣式 */
+        .filter-btn.active {
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.25);
+            transform: scale(1.02);
+        }
+        /* 隱藏滾動條 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -104,9 +123,37 @@
             activeView: 'latest', // 'latest' 或 'all'
             currentPage: 1,
             itemsPerPage: 10,
+            activeMemberFilter: 'all', // 新增：用於成員篩選
         };
 
         const appContainer = document.getElementById('app');
+
+        // VSPO 成員資料
+        const members = [
+            {"name_jp": "花芽すみれ", "name_en": "Kaga Sumire", "color": "#b0c4de", "avatar": "https://pbs.twimg.com/profile_images/1912465565295263744/ZXjbYmGJ_400x400.jpg"},
+            {"name_jp": "花芽なずな", "name_en": "Kaga Nazuna", "color": "#fabedc", "avatar": "https://pbs.twimg.com/profile_images/1907435057507430400/KvnnxOFy_400x400.jpg"},
+            {"name_jp": "小雀とと", "name_en": "Kogara Toto", "color": "#f5eb4a", "avatar": "https://pbs.twimg.com/profile_images/1912783899312480256/-FXzc0rz_400x400.jpg"},
+            {"name_jp": "一ノ瀬うるは", "name_en": "Ichinose Uruha", "color": "#4182fa", "avatar": "https://pbs.twimg.com/profile_images/1753117533664940032/NP-aP5RZ_400x400.jpg"},
+            {"name_jp": "胡桃のあ", "name_en": "Kurumi Noah", "color": "#ffdbfe", "avatar": "https://pbs.twimg.com/profile_images/1907727455085015045/PBwEYx6D_400x400.jpg"},
+            {"name_jp": "兎咲ミミ", "name_en": "Tosaki Mimi", "color": "#c7b2d6", "avatar": "https://pbs.twimg.com/profile_images/1879507811631300608/QT2dXtta_400x400.jpg"},
+            {"name_jp": "空澄セナ", "name_en": "Asumi Sena", "color": "#ffffff", "avatar": "https://pbs.twimg.com/profile_images/1907001131273961472/Z4UhnFux_400x400.jpg"},
+            {"name_jp": "橘ひなの", "name_en": "Tachibana Hinano", "color": "#fa96c8", "avatar": "https://pbs.twimg.com/profile_images/1618233947422621696/fEHyhcnK_400x400.jpg"},
+            {"name_jp": "英リサ", "name_en": "Hanabusa Lisa", "color": "#d1de79", "avatar": "https://pbs.twimg.com/profile_images/1874097043301699584/zi7RmmP3_400x400.jpg"},
+            {"name_jp": "如月れん", "name_en": "Kisaragi Ren", "color": "#be2152", "avatar": "https://pbs.twimg.com/profile_images/1847305606274932736/LBEG7ICH_400x400.jpg"},
+            {"name_jp": "神成きゅぴ", "name_en": "Kaminari Qpi", "color": "#ffd23c", "avatar": "https://pbs.twimg.com/profile_images/1862078851930828800/63fGuJI2_400x400.jpg"},
+            {"name_jp": "八雲べに", "name_en": "Yakumo Beni", "color": "#85cab3", "avatar": "https://pbs.twimg.com/profile_images/1921182407862218753/bheaA8c3_400x400.jpg"},
+            {"name_jp": "藍沢エマ", "name_en": "Aizawa Ema", "color": "#b4f1f9", "avatar": "https://pbs.twimg.com/profile_images/1881204018262974464/rn9wukHW_400x400.jpg"},
+            {"name_jp": "紫宮るな", "name_en": "Shinomiya Runa", "color": "#d6adff", "avatar": "https://pbs.twimg.com/profile_images/1839045768423817216/549FecAA_400x400.jpg"},
+            {"name_jp": "猫汰つな", "name_en": "Nekota Tsuna", "color": "#ff3652", "avatar": "https://pbs.twimg.com/profile_images/1874123390812119041/LHG2STEC_400x400.jpg"},
+            {"name_jp": "白波らむね", "name_en": "Shiranami Ramune", "color": "#8eced9", "avatar": "https://pbs.twimg.com/profile_images/1924698687097470978/OO-oOylq_400x400.jpg"},
+            {"name_jp": "小森めと", "name_en": "Komori Met", "color": "#fba03f", "avatar": "https://pbs.twimg.com/profile_images/1868231900919369728/SRXuyYfq_400x400.jpg"},
+            {"name_jp": "夢野あかり", "name_en": "Yumeno Akari", "color": "#ff998d", "avatar": "https://pbs.twimg.com/profile_images/1804138636423892995/8e6VfxvB_400x400.jpg"},
+            {"name_jp": "夜乃くろむ", "name_en": "Yano Kuromu", "color": "#909ec8", "avatar": "https://pbs.twimg.com/profile_images/1934848178534404099/duv55ZOx_400x400.jpg"},
+            {"name_jp": "紡木こかげ", "name_en": "Tsumugi Kokage", "color": "#5195e1", "avatar": "https://pbs.twimg.com/profile_images/1769316534248439808/UoI5e3Lt_400x400.jpg"},
+            {"name_jp": "千燈ゆうひ", "name_en": "Sendo Yuuhi", "color": "#ed784a", "avatar": "https://pbs.twimg.com/profile_images/1785226750089433088/mrijg6NS_400x400.jpg"},
+            {"name_jp": "蝶屋はなび", "name_en": "Choya Hanabi", "color": "#ea5506", "avatar": "https://pbs.twimg.com/profile_images/1851908795443916800/iOVHANSX_400x400.jpg"},
+            {"name_jp": "甘結もか", "name_en": "Amayui Moka", "color": "#eca0aa", "avatar": "https://pbs.twimg.com/profile_images/1851908799499767813/WO_pmLid_400x400.jpg"}
+        ];
         
         // --- UI 元件產生器 ---
         function createErrorDisplay(error) {
@@ -123,6 +170,7 @@
             container.innerHTML = `<strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p>`;
             return container;
         }
+
         function createVideoCard(video, showChannel = true) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
@@ -204,7 +252,6 @@
             };
 
             const card = document.createElement('div');
-            // 使用相對定位，並設定背景圖片
             card.className = "group rounded-lg overflow-hidden shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300 relative";
             card.style.backgroundImage = `url('${channel.avatarUrl}')`;
             card.style.backgroundSize = 'cover';
@@ -212,7 +259,6 @@
             
             const video = channel.latestVideo;
 
-            // 疊加層 (用於模糊和變暗) 和內容容器
             card.innerHTML = `
                 <div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div>
                 <div class="relative z-10 flex flex-col h-full">
@@ -242,6 +288,47 @@
             `;
             return card;
         }
+
+        // 輔助函式：判斷顏色是淺色還是深色，以決定文字顏色
+        function isColorLight(hexColor) {
+            if (!hexColor) return false;
+            const color = (hexColor.charAt(0) === '#') ? hexColor.substring(1, 7) : hexColor;
+            if (color.length < 6) return false; // 無效的顏色碼
+            const r = parseInt(color.substring(0, 2), 16);
+            const g = parseInt(color.substring(2, 4), 16);
+            const b = parseInt(color.substring(4, 6), 16);
+            // W3C 建議的亮度計算公式
+            return (r * 0.299 + g * 0.587 + b * 0.114) > 186;
+        }
+
+        function createMemberFilterListHTML(members, activeFilter) {
+            const listContainer = document.createElement('div');
+            listContainer.className = 'grid grid-cols-1 gap-y-2';
+
+            // 「顯示全部」按鈕
+            const allBtn = document.createElement('button');
+            allBtn.className = `filter-btn ${activeFilter === 'all' ? 'active' : ''}`;
+            allBtn.dataset.filter = 'all';
+            allBtn.textContent = '顯示全部';
+            listContainer.appendChild(allBtn);
+
+            // 成員標籤按鈕
+            members.forEach(member => {
+                const btn = document.createElement('button');
+                const isActive = activeFilter === member.name_jp;
+                
+                btn.className = `filter-btn ${isActive ? 'active' : ''}`;
+                btn.dataset.filter = member.name_jp;
+                
+                // 設定背景色和文字顏色
+                btn.style.backgroundColor = member.color;
+                btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb'; // 淺色背景用深灰文字，深色背景用淺灰文字
+                
+                btn.textContent = member.name_jp;
+                listContainer.appendChild(btn);
+            });
+            return listContainer;
+        }
         
         function createSkeleton(type) {
             const skeleton = document.createElement('div');
@@ -255,9 +342,7 @@
             return skeleton;
         }
 
-        // --- API 請求邏輯 ---
         async function fetchAllDataFromProxy(force = false, password = '') {
-            console.log(`向代理伺服器發送請求... 強制更新: ${force}`);
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
             if (force) {
                 url.searchParams.append('force_refresh', 'true');
@@ -266,14 +351,12 @@
             const response = await fetch(url);
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || `Request failed with status ${response.status}`);
-            console.log("成功從代理獲取資料！");
             return data;
         }
         
         function createPaginationControls(totalPages, currentPage) {
             const container = document.createElement('div');
             container.className = 'flex justify-center items-center space-x-1 md:space-x-2 mt-8';
-
             const createBtn = (text, page, isDisabled = false, isActive = false) => {
                 const btn = document.createElement('button');
                 btn.className = `pagination-btn ${isActive ? 'active' : ''}`;
@@ -282,31 +365,21 @@
                 if (isDisabled) btn.disabled = true;
                 return btn;
             };
-
             const createEllipsis = () => {
                 const span = document.createElement('span');
                 span.className = 'pagination-ellipsis';
                 span.textContent = '...';
                 return span;
             };
-
             container.appendChild(createBtn('‹', currentPage - 1, currentPage === 1));
-
             if (totalPages <= 7) {
                 for (let i = 1; i <= totalPages; i++) {
                     container.appendChild(createBtn(i, i, false, i === currentPage));
                 }
             } else {
-                const pages = new Set();
-                pages.add(1);
-                pages.add(totalPages);
-                pages.add(currentPage);
-                if (currentPage > 1) pages.add(currentPage - 1);
-                if (currentPage < totalPages) pages.add(currentPage + 1);
-
-                const sortedPages = Array.from(pages).sort((a, b) => a - b);
+                const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+                const sortedPages = Array.from(pages).filter(p => p > 0 && p <= totalPages).sort((a, b) => a - b);
                 let lastPage = 0;
-
                 for (const page of sortedPages) {
                     if (lastPage !== 0 && page - lastPage > 1) {
                         container.appendChild(createEllipsis());
@@ -315,87 +388,110 @@
                     lastPage = page;
                 }
             }
-
             container.appendChild(createBtn('›', currentPage + 1, currentPage === totalPages));
-
             return container;
         }
 
-        // --- 主應用程式邏輯與渲染 ---
         function render() {
-            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage } = state;
+            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter } = state;
             
-            appContainer.innerHTML = '';
-            const mainContainer = document.createElement('div');
-            mainContainer.className = "container mx-auto px-4 py-8";
+            appContainer.innerHTML = ''; // 清空主容器
+
+            // --- 建立基本佈局 ---
+            const header = document.createElement('header');
+            header.className = "text-center mb-8";
+            header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</h1>`;
             
-            let contentHtml;
+            const topBar = document.createElement('div');
+            topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
+            topBar.innerHTML = `
+                <div class="container mx-auto px-4 text-center text-sm text-gray-500 flex justify-center items-center space-x-4 flex-wrap">
+                    <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
+                    <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
+                    ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                        回報遺漏頻道/影片
+                    </a>
+                </div>`;
+            
+            const mainGrid = document.createElement('div');
+            mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[max-content_1fr] gap-8";
+
+            // --- 左側篩選列 ---
+            const leftSidebar = document.createElement('aside');
+            leftSidebar.className = ""; // 移除 col-span
+            const filterContainer = document.createElement('div');
+            // 讓篩選列在電腦版 sticky
+            filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28";
+            filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
+            filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
+            leftSidebar.appendChild(filterContainer);
+
+            // --- 右側主內容 ---
+            const rightContent = document.createElement('main');
+            rightContent.className = ""; // 移除 col-span
+
             if (isLoading) {
                 const videoSkeletons = Array.from({ length: 10 }).map(() => createSkeleton('card').outerHTML).join('');
-                contentHtml = `<section style="min-height: 720px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">${videoSkeletons}</div></section>`;
+                rightContent.innerHTML = `<section style="min-height: 720px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">${videoSkeletons}</div></section>`;
             } else if (apiError) {
-                contentHtml = createErrorDisplay(apiError).outerHTML;
-            } else if (allVideos.length === 0) {
-                 contentHtml = `<p class="text-center text-gray-400 p-8">找不到符合條件的影片，或代理伺服器的快取尚未建立。</p>`;
+                rightContent.appendChild(createErrorDisplay(apiError));
             } else {
-                // --- 影片區塊渲染 ---
-                const videosSection = document.createElement('section');
-                const videosHeader = document.createElement('div');
-                videosHeader.className = "flex items-center justify-between mb-6";
-                videosHeader.innerHTML = `
-                    <div class="flex items-center">
-                        <h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2>
-                        <div class="tooltip ml-2">
-                            <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
-                            <div class="tooltiptext">
-                                <p class="font-semibold mb-2">說明：</p>
-                                <p>1. 伺服器快取每 30 分鐘更新一次。</p>
-                                <p>2. 為關鍵字搜尋，故可能出現：</p>
-                                <p class="pl-4">a. 含VSPO關鍵字的非VSPO烤肉</p>
-                                <p class="pl-4">b. 含中文關鍵字的外文剪輯</p>
+                // 篩選邏輯
+                const filteredVideos = activeMemberFilter === 'all'
+                    ? allVideos
+                    : allVideos.filter(video => video.title.includes(activeMemberFilter));
+
+                if (filteredVideos.length === 0 && activeMemberFilter !== 'all') {
+                     rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到關於「${activeMemberFilter}」的影片。</p>`;
+                } else {
+                    const videosSection = document.createElement('section');
+                    const videosHeader = document.createElement('div');
+                    videosHeader.className = "flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6";
+                    videosHeader.innerHTML = `
+                        <div class="flex items-center mb-4 sm:mb-0">
+                            <h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2>
+                            <div class="tooltip ml-2">
+                                <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
+                                <div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 30 分鐘更新一次。</p><p>2. 為關鍵字搜尋，故可能出現：</p><p class="pl-4">a. 含VSPO關鍵字的非VSPO烤肉</p><p class="pl-4">b. 含中文關鍵字的外文剪輯</p></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">最新十部</button>
-                        <button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button>
-                    </div>
-                `;
-                videosSection.appendChild(videosHeader);
+                        <div class="flex space-x-2 self-start sm:self-center"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">最新十部</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
+                    videosSection.appendChild(videosHeader);
 
-                const viewContainer = document.createElement('div');
-                viewContainer.style.minHeight = '720px'; 
-                
-                if (activeView === 'latest') {
-                    const grid = document.createElement('div');
-                    grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                    allVideos.slice(0, 10).forEach(video => grid.appendChild(createVideoCard(video)));
-                    viewContainer.appendChild(grid);
-                } else { // activeView === 'all'
-                    const listContainer = document.createElement('div');
-                    listContainer.className = 'space-y-3';
-                    const totalPages = Math.ceil(allVideos.length / itemsPerPage);
-                    const startIndex = (currentPage - 1) * itemsPerPage;
-                    const endIndex = startIndex + itemsPerPage;
-                    const paginatedVideos = allVideos.slice(startIndex, endIndex);
+                    const viewContainer = document.createElement('div');
+                    viewContainer.style.minHeight = '720px'; 
                     
-                    paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
-                    viewContainer.appendChild(listContainer);
+                    const videosToDisplay = filteredVideos.length > 0 ? filteredVideos : (activeMemberFilter === 'all' ? allVideos : []);
 
-                    const paginationControls = createPaginationControls(totalPages, currentPage);
-                    viewContainer.appendChild(paginationControls);
+                    if (activeView === 'latest') {
+                        const grid = document.createElement('div');
+                        grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+                        videosToDisplay.slice(0, 10).forEach(video => grid.appendChild(createVideoCard(video)));
+                        viewContainer.appendChild(grid);
+                    } else { // activeView === 'all'
+                        const listContainer = document.createElement('div');
+                        listContainer.className = 'space-y-3';
+                        const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
+                        const startIndex = (currentPage - 1) * itemsPerPage;
+                        const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
+                        
+                        paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
+                        viewContainer.appendChild(listContainer);
+                        if (totalPages > 1) {
+                            viewContainer.appendChild(createPaginationControls(totalPages, currentPage));
+                        }
+                    }
+                    videosSection.appendChild(viewContainer);
+                    rightContent.appendChild(videosSection);
                 }
-                videosSection.appendChild(viewContainer);
-                
-                // --- 頻道列表區塊渲染 ---
+
+                // 頻道列表區塊（不受篩選影響）
                 const channels = {};
                 allVideos.forEach(video => {
                     if (!channels[video.channelId]) {
-                        channels[video.channelId] = {
-                            id: video.channelId, name: video.channelTitle,
-                            subscriberCount: video.subscriberCount, 
-                            latestVideo: video, avatarUrl: video.channelAvatarUrl
-                        };
+                        channels[video.channelId] = { id: video.channelId, name: video.channelTitle, subscriberCount: video.subscriberCount, latestVideo: video, avatarUrl: video.channelAvatarUrl };
                     }
                 });
                 const thirtyDaysAgo = new Date();
@@ -404,40 +500,24 @@
                     .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
                     .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
 
-                const channelListSection = document.createElement('section');
-                const channelListGrid = document.createElement('div');
-                channelListGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6';
-                if(channelData.length > 0) {
+                if (channelData.length > 0) {
+                    const channelListSection = document.createElement('section');
+                    const channelListGrid = document.createElement('div');
+                    channelListGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
                     channelData.forEach(channel => channelListGrid.appendChild(createChannelGridCard(channel)));
-                } else {
-                     channelListGrid.innerHTML = `<p class="text-gray-400">找不到過去30天內有更新的頻道。</p>`;
+                    channelListSection.innerHTML = `<div class="flex items-baseline mb-6 gap-x-3"><h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p></div>`;
+                    channelListSection.appendChild(channelListGrid);
+                    rightContent.appendChild(channelListSection);
                 }
-                channelListSection.innerHTML = `<div class="flex items-baseline mb-6 gap-x-3"><h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p></div>`;
-                channelListSection.appendChild(channelListGrid);
-                
-                contentHtml = videosSection.outerHTML + channelListSection.outerHTML;
             }
 
-            mainContainer.innerHTML = `
-                <header class="text-center mb-8">
-                    <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">
-                        <span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處
-                    </h1>
-                </header>
-                <div class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8">
-                    <div class="text-center text-sm text-gray-500 mt-3 flex justify-center items-center space-x-4 flex-wrap">
-                        <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
-                        <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
-                        ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
-                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                            回報遺漏頻道/影片
-                        </a>
-                    </div>
-                </div>
-                <div>${contentHtml}</div>
-            `;
-            appContainer.appendChild(mainContainer);
+            // --- 組合頁面 ---
+            mainGrid.appendChild(leftSidebar);
+            mainGrid.appendChild(rightContent);
+            appContainer.appendChild(header);
+            appContainer.appendChild(topBar);
+            appContainer.appendChild(mainGrid);
+
             setupEventListeners();
         }
 
@@ -459,6 +539,15 @@
                         state.currentPage = page;
                         render();
                     }
+                });
+            });
+            // 新增：成員篩選按鈕的事件監聽
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const filter = e.currentTarget.dataset.filter;
+                    state.activeMemberFilter = filter;
+                    state.currentPage = 1; // 重置頁碼
+                    render();
                 });
             });
         }
