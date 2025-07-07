@@ -123,7 +123,7 @@
             activeView: 'latest', // 'latest' 或 'all'
             currentPage: 1,
             itemsPerPage: 10,
-            activeMemberFilter: 'all', // 新增：用於成員篩選
+            activeMemberFilter: 'all', 
         };
 
         const appContainer = document.getElementById('app');
@@ -303,12 +303,11 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            // **修正**: 手機上橫向滾動，電腦上改為垂直 flexbox 佈局
+            // **最終修正**: 手機上橫向滾動，電腦上改為垂直 flexbox 佈局，讓按鈕自動延展
             listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
 
             // 「顯示全部」按鈕
             const allBtn = document.createElement('button');
-            // **修正**: 移除 md:w-full，讓 flexbox 自動延展
             allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
             allBtn.dataset.filter = 'all';
             allBtn.textContent = '顯示全部';
@@ -319,7 +318,6 @@
                 const btn = document.createElement('button');
                 const isActive = activeFilter === member.name_jp;
                 
-                // **修正**: 移除 md:w-full，讓 flexbox 自動延展
                 btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
                 btn.dataset.filter = member.name_jp;
                 
@@ -395,7 +393,7 @@
             return container;
         }
 
-        function render() {
+        function render(onRenderComplete) {
             const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter } = state;
             
             appContainer.innerHTML = ''; // 清空主容器
@@ -419,7 +417,7 @@
                 </div>`;
             
             const mainGrid = document.createElement('div');
-            // **修正**: 保持上一版對主網格的修正
+            // **最終修正**: 保留此佈局，防止頁面延伸
             mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
 
             // --- 左側篩選列 (手機版為頂部) ---
@@ -434,7 +432,7 @@
 
             // --- 右側主內容 ---
             const rightContent = document.createElement('main');
-            // **修正**: 保持上一版對右欄的修正
+            // **最終修正**: 保留此設定，防止內容撐開頁面
             rightContent.className = "md:col-start-2 min-w-0"; 
 
             if (isLoading) {
@@ -452,6 +450,7 @@
                      rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到關於「${activeMemberFilter}」的影片。</p>`;
                 } else {
                     const videosSection = document.createElement('section');
+                    videosSection.id = 'videos-section'; // 新增ID以便捲動定位
                     const videosHeader = document.createElement('div');
                     videosHeader.className = "flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6";
                     videosHeader.innerHTML = `
@@ -524,6 +523,11 @@
             appContainer.appendChild(mainGrid);
 
             setupEventListeners();
+
+            // 如果有回呼函式，則在渲染完成後執行
+            if (onRenderComplete) {
+                onRenderComplete();
+            }
         }
 
         function setupEventListeners() {
@@ -542,11 +546,17 @@
                     const page = parseInt(e.currentTarget.dataset.page, 10);
                     if (page && page !== state.currentPage) {
                         state.currentPage = page;
-                        render();
+                        // 呼叫 render 並傳入捲動的回呼函式
+                        render(() => {
+                            const videosSection = document.getElementById('videos-section');
+                            if (videosSection) {
+                                videosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        });
                     }
                 });
             });
-            // 新增：成員篩選按鈕的事件監聽
+            
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const filter = e.currentTarget.dataset.filter;
