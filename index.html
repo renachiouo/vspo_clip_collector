@@ -303,8 +303,8 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            // 手機上橫向滾動，電腦上垂直網格
-            listContainer.className = 'flex flex-row space-x-2 md:grid md:grid-cols-1 md:gap-y-2 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
+            // 手機上橫向滾動，電腦上垂直 flexbox
+            listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
 
             // 「顯示全部」按鈕
             const allBtn = document.createElement('button');
