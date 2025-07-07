@@ -303,11 +303,12 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            // 手機上橫向滾動，電腦上垂直網格
-            listContainer.className = 'flex flex-row space-x-2 md:grid md:grid-cols-1 md:gap-y-2 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
+            // **修正**: 手機上橫向滾動，電腦上改為垂直 flexbox 佈局
+            listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
 
             // 「顯示全部」按鈕
             const allBtn = document.createElement('button');
+            // **修正**: 移除 md:w-full，讓 flexbox 自動延展
             allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
             allBtn.dataset.filter = 'all';
             allBtn.textContent = '顯示全部';
@@ -318,6 +319,7 @@
                 const btn = document.createElement('button');
                 const isActive = activeFilter === member.name_jp;
                 
+                // **修正**: 移除 md:w-full，讓 flexbox 自動延展
                 btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
                 btn.dataset.filter = member.name_jp;
                 
@@ -417,7 +419,8 @@
                 </div>`;
             
             const mainGrid = document.createElement('div');
-            mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[max-content_1fr] gap-8";
+            // **修正**: 保持上一版對主網格的修正
+            mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
 
             // --- 左側篩選列 (手機版為頂部) ---
             const filterSection = document.createElement('aside');
@@ -431,7 +434,8 @@
 
             // --- 右側主內容 ---
             const rightContent = document.createElement('main');
-            rightContent.className = "md:col-start-2"; // 在電腦版，此為右側欄
+            // **修正**: 保持上一版對右欄的修正
+            rightContent.className = "md:col-start-2 min-w-0"; 
 
             if (isLoading) {
                 const videoSkeletons = Array.from({ length: 10 }).map(() => createSkeleton('card').outerHTML).join('');
