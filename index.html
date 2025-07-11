@@ -462,7 +462,16 @@
                             <h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2>
                             <div class="tooltip ml-2">
                                 <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
-                                <div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 30 分鐘更新一次</p><p>2. 為關鍵字搜尋，故可能出現：</p><p class="pl-4">　a. 含VSPO關鍵字的非VSPO烤肉</p><p class="pl-4">　b. 含中文關鍵字的外文剪輯</p><p class="pl-4">有以上情形請至頁首回報處回報</p></div>
+                                <div class="tooltiptext">
+                                    <p class="font-semibold mb-2">說明：</p>
+                                    <p>1. 伺服器快取每 30 分鐘更新一次</p>
+                                    <p>2. 為關鍵字搜尋，故可能出現：</p>
+                                    <div class="pl-4">
+                                        <p>a. 含VSPO關鍵字的非VSPO烤肉</p>
+                                        <p>b. 含中文關鍵字的外文剪輯</p>
+                                        <p class="mt-2">有以上情形請至頁首回報處回報</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="flex space-x-2 self-start sm:self-center"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">最新十部</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
