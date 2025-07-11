@@ -6,7 +6,12 @@
     <title>れなち的VSPO中文精華收集處</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style> 
-        body { background-color: #111827; } 
+        html {
+            scroll-behavior: smooth;
+        }
+        body { 
+            background-color: #111827; 
+        } 
         /* Tooltip 樣式 */
         .tooltip {
             position: relative;
@@ -303,7 +308,7 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            // **最終修正**: 手機上橫向滾動，電腦上改為垂直 flexbox 佈局，讓按鈕自動延展
+            // 手機上橫向滾動，電腦上垂直 flexbox 佈局
             listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
 
             // 「顯示全部」按鈕
@@ -400,7 +405,8 @@
 
             // --- 建立基本佈局 ---
             const header = document.createElement('header');
-            header.className = "text-center mb-8";
+            // **修正**: 為標題增加頂部內邊距 (padding-top)
+            header.className = "text-center pt-8 mb-8";
             header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</h1>`;
             
             const topBar = document.createElement('div');
@@ -417,7 +423,6 @@
                 </div>`;
             
             const mainGrid = document.createElement('div');
-            // **最終修正**: 保留此佈局，防止頁面延伸
             mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
 
             // --- 左側篩選列 (手機版為頂部) ---
@@ -432,7 +437,6 @@
 
             // --- 右側主內容 ---
             const rightContent = document.createElement('main');
-            // **最終修正**: 保留此設定，防止內容撐開頁面
             rightContent.className = "md:col-start-2 min-w-0"; 
 
             if (isLoading) {
