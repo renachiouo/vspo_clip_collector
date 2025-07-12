@@ -615,7 +615,9 @@
                         name: button.dataset.channelName,
                     };
                     state.currentPage = 1;
-                    render();
+                    render(() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
                 });
             });
 
