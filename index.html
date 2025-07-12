@@ -129,6 +129,7 @@
             currentPage: 1,
             itemsPerPage: 10,
             activeMemberFilter: 'all', 
+            activeChannelFilter: null, // 新增：用於頻道篩選 {id: string, name: string}
         };
 
         const appContainer = document.getElementById('app');
@@ -268,13 +269,22 @@
                 <div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div>
                 <div class="relative z-10 flex flex-col h-full">
                     <div class="p-4">
-                        <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-3">
-                            <img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 flex-shrink-0 border-2 border-white/20">
+                        <div class="flex items-center space-x-3">
+                            <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0">
+                                <img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20">
+                            </a>
                             <div class="flex-1 min-w-0">
-                                <p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p>
+                                <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer">
+                                    <p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p>
+                                </a>
                                 <p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
                             </div>
-                        </a>
+                            <button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="px-4 text-sm text-gray-400">最新影片:</div>
                     <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2">
@@ -402,7 +412,7 @@
         }
 
         function render(onRenderComplete) {
-            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter } = state;
+            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter } = state;
             
             appContainer.innerHTML = ''; // 清空主容器
 
@@ -447,15 +457,32 @@
                 rightContent.appendChild(createErrorDisplay(apiError));
             } else {
                 // 篩選邏輯
-                const filteredVideos = activeMemberFilter === 'all'
-                    ? allVideos
-                    : allVideos.filter(video => video.title.includes(activeMemberFilter));
+                let filteredVideos = allVideos;
+                if (activeChannelFilter) {
+                    filteredVideos = allVideos.filter(video => video.channelId === activeChannelFilter.id);
+                } else if (activeMemberFilter !== 'all') {
+                    filteredVideos = allVideos.filter(video => video.title.includes(activeMemberFilter));
+                }
 
-                if (filteredVideos.length === 0 && activeMemberFilter !== 'all') {
-                     rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到關於「${activeMemberFilter}」的影片。</p>`;
+                if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
+                    const filterName = activeChannelFilter ? activeChannelFilter.name : activeMemberFilter;
+                    rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到關於「${filterName}」的影片。</p>`;
                 } else {
                     const videosSection = document.createElement('section');
-                    videosSection.id = 'videos-section'; // 新增ID以便捲動定位
+                    videosSection.id = 'videos-section'; 
+                    
+                    if (activeChannelFilter) {
+                        const filterBanner = document.createElement('div');
+                        filterBanner.className = 'flex items-center justify-between bg-purple-900/50 text-purple-200 px-4 py-2 rounded-lg mb-6';
+                        filterBanner.innerHTML = `
+                            <span>目前篩選中：<strong class="font-semibold">${activeChannelFilter.name}</strong></span>
+                            <button id="clear-channel-filter-btn" class="p-1 rounded-full hover:bg-white/20 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                        `;
+                        videosSection.appendChild(filterBanner);
+                    }
+
                     const videosHeader = document.createElement('div');
                     videosHeader.className = "flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6";
                     videosHeader.innerHTML = `
@@ -481,7 +508,7 @@
                     const viewContainer = document.createElement('div');
                     viewContainer.style.minHeight = '720px'; 
                     
-                    const videosToDisplay = filteredVideos.length > 0 ? filteredVideos : (activeMemberFilter === 'all' ? allVideos : []);
+                    const videosToDisplay = filteredVideos;
 
                     if (activeView === 'latest') {
                         const grid = document.createElement('div');
@@ -572,11 +599,29 @@
             
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const filter = e.currentTarget.dataset.filter;
-                    state.activeMemberFilter = filter;
-                    state.currentPage = 1; // 重置頁碼
+                    state.activeChannelFilter = null; // 清除頻道篩選
+                    state.activeMemberFilter = e.currentTarget.dataset.filter;
+                    state.currentPage = 1; 
                     render();
                 });
+            });
+            
+            document.querySelectorAll('.channel-filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const button = e.currentTarget;
+                    state.activeMemberFilter = 'all'; // 清除成員篩選
+                    state.activeChannelFilter = {
+                        id: button.dataset.channelId,
+                        name: button.dataset.channelName,
+                    };
+                    state.currentPage = 1;
+                    render();
+                });
+            });
+
+            document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => {
+                state.activeChannelFilter = null;
+                render();
             });
         }
 
