@@ -613,7 +613,7 @@
                     lastClickTime = now;
                     if (sequence.join('') === targetSequence.join('')) {
                         console.log("秘密通道已觸發！");
-                        const input = prompt("請輸入管理員密碼。\n若要執行深度回填，請輸入『密碼,deep』");
+                        const input = prompt("請輸入管理員密碼：");
                         if (input) {
                             const parts = input.split(',');
                             const password = parts[0];
