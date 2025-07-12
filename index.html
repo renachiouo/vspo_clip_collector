@@ -348,11 +348,14 @@
             return skeleton;
         }
 
-        async function fetchAllDataFromProxy(force = false, password = '') {
+        async function fetchAllDataFromProxy(force = false, password = '', mode = 'normal') {
             const url = new URL(`${PROXY_ENDPOINT}/api/youtube`);
             if (force) {
                 url.searchParams.append('force_refresh', 'true');
                 url.searchParams.append('password', password);
+                if (mode === 'deep') {
+                    url.searchParams.append('mode', 'deep');
+                }
             }
             const response = await fetch(url);
             const data = await response.json();
@@ -405,7 +408,6 @@
 
             // --- 建立基本佈局 ---
             const header = document.createElement('header');
-            // **修正**: 為標題增加頂部內邊距 (padding-top)
             header.className = "text-center pt-8 mb-8";
             header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</h1>`;
             
@@ -429,7 +431,6 @@
             const filterSection = document.createElement('aside');
             filterSection.className = "md:col-start-1"; // 在電腦版，此為左側欄
             const filterContainer = document.createElement('div');
-            // 在手機上，它只是一個普通的 div；在電腦上，它會變成 sticky
             filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28";
             filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
             filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
@@ -559,7 +560,6 @@
                     const page = parseInt(e.currentTarget.dataset.page, 10);
                     if (page && page !== state.currentPage) {
                         state.currentPage = page;
-                        // 呼叫 render 並傳入捲動的回呼函式
                         render(() => {
                             const videosSection = document.getElementById('videos-section');
                             if (videosSection) {
@@ -580,11 +580,11 @@
             });
         }
 
-        async function initializeApp(force = false, password = '') {
+        async function initializeApp(force = false, password = '', mode = 'normal') {
             state.isLoading = true;
             render(); 
             try {
-                const dataPackage = await fetchAllDataFromProxy(force, password);
+                const dataPackage = await fetchAllDataFromProxy(force, password, mode);
                 state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp);
                 state.totalVisits = dataPackage.totalVisits || 0;
@@ -613,8 +613,14 @@
                     lastClickTime = now;
                     if (sequence.join('') === targetSequence.join('')) {
                         console.log("秘密通道已觸發！");
-                        const password = prompt("請輸入管理員密碼以強制更新快取：");
-                        if (password) initializeApp(true, password);
+                        const input = prompt("請輸入管理員密碼。\n若要執行深度回填，請輸入『密碼,deep』");
+                        if (input) {
+                            const parts = input.split(',');
+                            const password = parts[0];
+                            const mode = parts[1] === 'deep' ? 'deep' : 'normal';
+                            alert(`正在以 ${mode} 模式執行更新...`);
+                            initializeApp(true, password, mode);
+                        }
                         sequence = [];
                     }
                     if (sequence.length >= targetSequence.length && sequence.join('') !== targetSequence.join('')) {
