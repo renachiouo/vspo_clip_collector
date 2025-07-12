@@ -441,7 +441,7 @@
             const filterSection = document.createElement('aside');
             filterSection.className = "md:col-start-1"; // 在電腦版，此為左側欄
             const filterContainer = document.createElement('div');
-            filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28";
+            filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28 md:flex md:flex-col md:max-h-[calc(100vh-9rem)]";
             filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
             filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
             filterSection.appendChild(filterContainer);
