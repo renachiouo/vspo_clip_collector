@@ -16,6 +16,41 @@ export async function fetchAllDataFromProxy(force = false, password = '', mode =
     return data;
 }
 
+// --- 更新檢查相關函式 ---
+export function showUpdateModal(title, message, showDownloadButton = false) {
+    const existingModal = document.getElementById('update-modal');
+    if (existingModal) existingModal.remove();
+
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'update-modal';
+    modalOverlay.className = 'modal-overlay';
+    
+    let downloadButtonHTML = '';
+    if (showDownloadButton) {
+        downloadButtonHTML = `<a href="https://github.com/renachiouo/vspo_clip_collector/releases" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
+    }
+
+    modalOverlay.innerHTML = `
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-cyan-400 mb-4">${title}</h3>
+            <p class="text-gray-300">${message}</p>
+            ${downloadButtonHTML}
+            <button id="close-modal-btn" class="mt-4 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button>
+        </div>
+    `;
+
+    document.body.appendChild(modalOverlay);
+    
+    setTimeout(() => modalOverlay.classList.add('visible'), 10);
+
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay || e.target.id === 'close-modal-btn' || e.target.closest('#close-modal-btn')) {
+            modalOverlay.classList.remove('visible');
+            setTimeout(() => modalOverlay.remove(), 300);
+        }
+    });
+}
+
 export async function checkForUpdates(CURRENT_APP_VERSION, showUpdateModal) {
     showUpdateModal('檢查更新中...', '正在從 GitHub 獲取最新版本資訊，請稍候...');
     try {

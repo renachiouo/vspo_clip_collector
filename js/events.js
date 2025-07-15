@@ -35,11 +35,9 @@ export function setupSecretTrigger() {
 export function setupEventListeners() {
     setupSecretTrigger();
     document.getElementById('check-update-btn')?.addEventListener('click', () => {
-        import('./api.js').then(({ checkForUpdates }) => {
+        import('./api.js').then(({ checkForUpdates, showUpdateModal }) => {
             import('./state.js').then(({ CURRENT_APP_VERSION }) => {
-                import('./ui-components.js').then(({ createErrorDisplay }) => {
-                    checkForUpdates(CURRENT_APP_VERSION, createErrorDisplay);
-                });
+                checkForUpdates(CURRENT_APP_VERSION, showUpdateModal);
             });
         });
     });
