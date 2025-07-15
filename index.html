@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>れなち的VSPO中文精華收集處</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style> 
@@ -107,7 +107,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 新增：Modal 樣式 */
+        /* Modal 樣式 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -149,7 +149,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V6.6'; // 手動設定當前應用程式版本
+        const CURRENT_APP_VERSION = 'V6.7'; 
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
@@ -168,40 +168,54 @@
 
         const appContainer = document.getElementById('app');
 
-        // VSPO 成員資料
-        const members = [
-            {"name_jp": "花芽すみれ", "name_en": "Kaga Sumire", "color": "#b0c4de", "avatar": "https://pbs.twimg.com/profile_images/1912465565295263744/ZXjbYmGJ_400x400.jpg"},
-            {"name_jp": "花芽なずな", "name_en": "Kaga Nazuna", "color": "#fabedc", "avatar": "https://pbs.twimg.com/profile_images/1907435057507430400/KvnnxOFy_400x400.jpg"},
-            {"name_jp": "小雀とと", "name_en": "Kogara Toto", "color": "#f5eb4a", "avatar": "https://pbs.twimg.com/profile_images/1912783899312480256/-FXzc0rz_400x400.jpg"},
-            {"name_jp": "一ノ瀬うるは", "name_en": "Ichinose Uruha", "color": "#4182fa", "avatar": "https://pbs.twimg.com/profile_images/1753117533664940032/NP-aP5RZ_400x400.jpg"},
-            {"name_jp": "胡桃のあ", "name_en": "Kurumi Noah", "color": "#ffdbfe", "avatar": "https://pbs.twimg.com/profile_images/1907727455085015045/PBwEYx6D_400x400.jpg"},
-            {"name_jp": "兎咲ミミ", "name_en": "Tosaki Mimi", "color": "#c7b2d6", "avatar": "https://pbs.twimg.com/profile_images/1879507811631300608/QT2dXtta_400x400.jpg"},
-            {"name_jp": "空澄セナ", "name_en": "Asumi Sena", "color": "#ffffff", "avatar": "https://pbs.twimg.com/profile_images/1907001131273961472/Z4UhnFux_400x400.jpg"},
-            {"name_jp": "橘ひなの", "name_en": "Tachibana Hinano", "color": "#fa96c8", "avatar": "https://pbs.twimg.com/profile_images/1618233947422621696/fEHyhcnK_400x400.jpg"},
-            {"name_jp": "英リサ", "name_en": "Hanabusa Lisa", "color": "#d1de79", "avatar": "https://pbs.twimg.com/profile_images/1874097043301699584/zi7RmmP3_400x400.jpg"},
-            {"name_jp": "如月れん", "name_en": "Kisaragi Ren", "color": "#be2152", "avatar": "https://pbs.twimg.com/profile_images/1847305606274932736/LBEG7ICH_400x400.jpg"},
-            {"name_jp": "神成きゅぴ", "name_en": "Kaminari Qpi", "color": "#ffd23c", "avatar": "https://pbs.twimg.com/profile_images/1862078851930828800/63fGuJI2_400x400.jpg"},
-            {"name_jp": "八雲べに", "name_en": "Yakumo Beni", "color": "#85cab3", "avatar": "https://pbs.twimg.com/profile_images/1921182407862218753/bheaA8c3_400x400.jpg"},
-            {"name_jp": "藍沢エマ", "name_en": "Aizawa Ema", "color": "#b4f1f9", "avatar": "https://pbs.twimg.com/profile_images/1881204018262974464/rn9wukHW_400x400.jpg"},
-            {"name_jp": "紫宮るな", "name_en": "Shinomiya Runa", "color": "#d6adff", "avatar": "https://pbs.twimg.com/profile_images/1839045768423817216/549FecAA_400x400.jpg"},
-            {"name_jp": "猫汰つな", "name_en": "Nekota Tsuna", "color": "#ff3652", "avatar": "https://pbs.twimg.com/profile_images/1874123390812119041/LHG2STEC_400x400.jpg"},
-            {"name_jp": "白波らむね", "name_en": "Shiranami Ramune", "color": "#8eced9", "avatar": "https://pbs.twimg.com/profile_images/1924698687097470978/OO-oOylq_400x400.jpg"},
-            {"name_jp": "小森めと", "name_en": "Komori Met", "color": "#fba03f", "avatar": "https://pbs.twimg.com/profile_images/1868231900919369728/SRXuyYfq_400x400.jpg"},
-            {"name_jp": "夢野あかり", "name_en": "Yumeno Akari", "color": "#ff998d", "avatar": "https://pbs.twimg.com/profile_images/1804138636423892995/8e6VfxvB_400x400.jpg"},
-            {"name_jp": "夜乃くろむ", "name_en": "Yano Kuromu", "color": "#909ec8", "avatar": "https://pbs.twimg.com/profile_images/1934848178534404099/duv55ZOx_400x400.jpg"},
-            {"name_jp": "紡木こかげ", "name_en": "Tsumugi Kokage", "color": "#5195e1", "avatar": "https://pbs.twimg.com/profile_images/1769316534248439808/UoI5e3Lt_400x400.jpg"},
-            {"name_jp": "千燈ゆうひ", "name_en": "Sendo Yuuhi", "color": "#ed784a", "avatar": "https://pbs.twimg.com/profile_images/1785226750089433088/mrijg6NS_400x400.jpg"},
-            {"name_jp": "蝶屋はなび", "name_en": "Choya Hanabi", "color": "#ea5506", "avatar": "https://pbs.twimg.com/profile_images/1851908795443916800/iOVHANSX_400x400.jpg"},
-            {"name_jp": "甘結もか", "name_en": "Amayui Moka", "color": "#eca0aa", "avatar": "https://pbs.twimg.com/profile_images/1851908799499767813/WO_pmLid_400x400.jpg"}
+        // VSPO 成員資料 (分區)
+        const vspoJPMembers = [
+            {"name_jp": "花芽すみれ", "name_en": "Kaga Sumire", "color": "#b0c4de"},
+            {"name_jp": "花芽なずな", "name_en": "Kaga Nazuna", "color": "#fabedc"},
+            {"name_jp": "小雀とと", "name_en": "Kogara Toto", "color": "#f5eb4a"},
+            {"name_jp": "一ノ瀬うるは", "name_en": "Ichinose Uruha", "color": "#4182fa"},
+            {"name_jp": "胡桃のあ", "name_en": "Kurumi Noah", "color": "#ffdbfe"},
+            {"name_jp": "兎咲ミミ", "name_en": "Tosaki Mimi", "color": "#c7b2d6"},
+            {"name_jp": "空澄セナ", "name_en": "Asumi Sena", "color": "#ffffff"},
+            {"name_jp": "橘ひなの", "name_en": "Tachibana Hinano", "color": "#fa96c8"},
+            {"name_jp": "英リサ", "name_en": "Hanabusa Lisa", "color": "#d1de79"},
+            {"name_jp": "如月れん", "name_en": "Kisaragi Ren", "color": "#be2152"},
+            {"name_jp": "神成きゅぴ", "name_en": "Kaminari Qpi", "color": "#ffd23c"},
+            {"name_jp": "八雲べに", "name_en": "Yakumo Beni", "color": "#85cab3"},
+            {"name_jp": "藍沢エマ", "name_en": "Aizawa Ema", "color": "#b4f1f9"},
+            {"name_jp": "紫宮るな", "name_en": "Shinomiya Runa", "color": "#d6adff"},
+            {"name_jp": "猫汰つな", "name_en": "Nekota Tsuna", "color": "#ff3652"},
+            {"name_jp": "白波らむね", "name_en": "Shiranami Ramune", "color": "#8eced9"},
+            {"name_jp": "小森めと", "name_en": "Komori Met", "color": "#fba03f"},
+            {"name_jp": "夢野あかり", "name_en": "Yumeno Akari", "color": "#ff998d"},
+            {"name_jp": "夜乃くろむ", "name_en": "Yano Kuromu", "color": "#909ec8"},
+            {"name_jp": "紡木こかげ", "name_en": "Tsumugi Kokage", "color": "#5195e1"},
+            {"name_jp": "千燈ゆうひ", "name_en": "Sendo Yuuhi", "color": "#ed784a"},
+            {"name_jp": "蝶屋はなび", "name_en": "Choya Hanabi", "color": "#ea5506"},
+            {"name_jp": "甘結もか", "name_en": "Amayui Moka", "color": "#eca0aa"}
         ];
+
+        const otherMemberGroups = {
+            "VSPO! EN": [
+                {"name_jp": "Arya Kuroha", "name_en": "Arya Kuroha", "color": "#000000", "forceWhiteText": true},
+                {"name_jp": "Jira Jisaki", "name_en": "Jira Jisaki", "color": "#606D3D", "forceWhiteText": true},
+                {"name_jp": "Narin Mikure", "name_en": "Narin Mikure", "color": "#F3A6EF", "forceWhiteText": true},
+                {"name_jp": "Riko Solari", "name_en": "Riko Solari", "color": "#9373D7", "forceWhiteText": true}
+            ],
+            "VSPO! CN": [
+                {"name_jp": "小针彩", "name_en": "小针彩", "color": "#FE688D", "forceWhiteText": true},
+                {"name_jp": "白咲露理", "name_en": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true},
+                {"name_jp": "帕妃", "name_en": "帕妃", "color": "#9F0019", "forceWhiteText": true},
+                {"name_jp": "千郁郁", "name_en": "千郁郁", "color": "#8986C0", "forceWhiteText": true}
+            ]
+        };
         
-        // --- 新增：更新檢查相關函式 ---
+        const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
+        
+        // --- 更新檢查相關函式 ---
         function showUpdateModal(title, message, showDownloadButton = false) {
-            // 首先，移除任何已存在的 modal
             const existingModal = document.getElementById('update-modal');
-            if (existingModal) {
-                existingModal.remove();
-            }
+            if (existingModal) existingModal.remove();
 
             const modalOverlay = document.createElement('div');
             modalOverlay.id = 'update-modal';
@@ -223,17 +237,11 @@
 
             document.body.appendChild(modalOverlay);
             
-            // 延遲一小段時間再加入 visible class 以觸發 CSS transition
-            setTimeout(() => {
-                modalOverlay.classList.add('visible');
-            }, 10);
+            setTimeout(() => modalOverlay.classList.add('visible'), 10);
 
-            // 關閉 modal 的事件監聽
             modalOverlay.addEventListener('click', (e) => {
-                // 點擊背景或關閉按鈕時關閉
                 if (e.target === modalOverlay || e.target.id === 'close-modal-btn' || e.target.closest('#close-modal-btn')) {
                     modalOverlay.classList.remove('visible');
-                    // 等待動畫結束後再從 DOM 中移除
                     setTimeout(() => modalOverlay.remove(), 300);
                 }
             });
@@ -243,20 +251,15 @@
             showUpdateModal('檢查更新中...', '正在從 GitHub 獲取最新版本資訊，請稍候...');
             try {
                 const response = await fetch('https://api.github.com/repos/renachiouo/vspo_clip_collector/commits?per_page=1');
-                if (!response.ok) {
-                    throw new Error(`GitHub API 請求失敗 (${response.status})`);
-                }
+                if (!response.ok) throw new Error(`GitHub API 請求失敗 (${response.status})`);
                 
                 const data = await response.json();
                 const latestCommitMessage = data[0]?.commit?.message || '';
                 
-                // 使用正規表達式從 commit message 中提取版本號 
                 const versionMatch = latestCommitMessage.match(/V(\d+\.\d+(\.\d+)?)/);
                 const latestVersion = versionMatch ? `V${versionMatch[1]}` : null;
 
-                if (!latestVersion) {
-                    throw new Error('無法從最新的 commit 中解析版本號。');
-                }
+                if (!latestVersion) throw new Error('無法從最新的 commit 中解析版本號。');
 
                 if (latestVersion === CURRENT_APP_VERSION) {
                     showUpdateModal('檢查完成', `您目前使用的已是最新版本 (${CURRENT_APP_VERSION})。`);
@@ -264,7 +267,7 @@
                     showUpdateModal(
                         '發現新版本！', 
                         `目前最新版本為 <strong>${latestVersion}</strong>，您使用的版本為 ${CURRENT_APP_VERSION}。<br><br>建議更新以獲取最新的功能與修正。`,
-                        true // 顯示下載按鈕
+                        true
                     );
                 }
             } catch (error) {
@@ -416,37 +419,54 @@
             return card;
         }
 
-        // 輔助函式：判斷顏色是淺色還是深色，以決定文字顏色
         function isColorLight(hexColor) {
             if (!hexColor) return false;
             const color = (hexColor.charAt(0) === '#') ? hexColor.substring(1, 7) : hexColor;
-            if (color.length < 6) return false; // 無效的顏色碼
+            if (color.length < 6) return false;
             const r = parseInt(color.substring(0, 2), 16);
             const g = parseInt(color.substring(2, 4), 16);
             const b = parseInt(color.substring(4, 6), 16);
-            // W3C 建議的亮度計算公式
             return (r * 0.299 + g * 0.587 + b * 0.114) > 186;
         }
 
-        function createMemberFilterListHTML(members, activeFilter) {
+        function createMemberFilterListHTML(jpMembers, otherGroups, activeFilter) {
             const listContainer = document.createElement('div');
             listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
             listContainer.id = 'member-filter-list-container';
+            
             const allBtn = document.createElement('button');
             allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
             allBtn.dataset.filter = 'all';
             allBtn.textContent = '顯示全部';
             listContainer.appendChild(allBtn);
-            members.forEach(member => {
+
+            const createMemberButton = (member) => {
                 const btn = document.createElement('button');
                 const isActive = activeFilter === member.name_jp;
                 btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
                 btn.dataset.filter = member.name_jp;
                 btn.style.backgroundColor = member.color;
-                btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb';
+                
+                if (member.forceWhiteText) {
+                    btn.style.color = '#FFFFFF';
+                } else {
+                    btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb';
+                }
+
                 btn.textContent = member.name_jp;
-                listContainer.appendChild(btn);
-            });
+                return btn;
+            };
+
+            jpMembers.forEach(member => listContainer.appendChild(createMemberButton(member)));
+
+            for (const groupName in otherGroups) {
+                const divider = document.createElement('div');
+                divider.className = 'text-xs text-gray-500 pt-2 pb-1 pl-2 md:pt-3 md:pb-1 whitespace-nowrap';
+                divider.textContent = groupName;
+                listContainer.appendChild(divider);
+
+                otherGroups[groupName].forEach(member => listContainer.appendChild(createMemberButton(member)));
+            }
             return listContainer;
         }
         
@@ -522,7 +542,12 @@
 
             const header = document.createElement('header');
             header.className = "text-center pt-8 mb-8";
-            header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處 <span class="text-lg align-middle text-gray-500">${CURRENT_APP_VERSION}</span></h1>`;
+            header.innerHTML = `
+                <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 flex justify-center items-baseline flex-wrap gap-x-3 px-4">
+                    <span><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</span>
+                    <span class="text-lg align-middle text-gray-500 whitespace-nowrap">${CURRENT_APP_VERSION}</span>
+                </h1>
+            `;
             
             const topBar = document.createElement('div');
             topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
@@ -549,7 +574,7 @@
             const filterContainer = document.createElement('div');
             filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28 md:flex md:flex-col md:max-h-[calc(100vh-9rem)]";
             filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
-            filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
+            filterContainer.appendChild(createMemberFilterListHTML(vspoJPMembers, otherMemberGroups, activeMemberFilter));
             filterSection.appendChild(filterContainer);
 
             const rightContent = document.createElement('main');
@@ -565,7 +590,7 @@
                 if (activeChannelFilter) {
                     filteredVideos = allVideos.filter(video => video.channelId === activeChannelFilter.id);
                 } else if (activeMemberFilter !== 'all') {
-                    filteredVideos = allVideos.filter(video => video.title.includes(activeMemberFilter));
+                    filteredVideos = allVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()));
                 }
 
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
@@ -645,11 +670,11 @@
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
                 
                 const videosForChannelList = activeMemberFilter !== 'all'
-                    ? allVideos.filter(video => video.title.includes(activeMemberFilter))
+                    ? allVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()))
                     : allVideos;
                 
                 if (activeMemberFilter !== 'all') {
-                    const member = members.find(m => m.name_jp === activeMemberFilter);
+                    const member = allMembers.find(m => m.name_jp === activeMemberFilter);
                     const memberColor = member ? member.color : '#fbbf24';
                     channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">一個月內發布過 <span style="color: ${memberColor}">${activeMemberFilter}</span> 剪輯的頻道</h2>`;
                 } else {
@@ -721,7 +746,10 @@
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const filterList = document.getElementById('member-filter-list-container');
-                    const scrollPosition = filterList ? filterList.scrollTop : 0;
+                    const scrollPosition = {
+                        top: filterList ? filterList.scrollTop : 0,
+                        left: filterList ? filterList.scrollLeft : 0
+                    };
             
                     state.activeChannelFilter = null;
                     state.activeMemberFilter = e.currentTarget.dataset.filter;
@@ -730,7 +758,8 @@
                     render(() => {
                         const newFilterList = document.getElementById('member-filter-list-container');
                         if (newFilterList) {
-                            newFilterList.scrollTop = scrollPosition;
+                            newFilterList.scrollTop = scrollPosition.top;
+                            newFilterList.scrollLeft = scrollPosition.left;
                         }
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     });
