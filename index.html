@@ -26,7 +26,7 @@
             border-radius: 6px;
             padding: 12px;
             position: absolute;
-            z-index: 30; /* 提高 z-index 層級 */
+            z-index: 30;
             bottom: 150%;
             left: 50%;
             margin-left: -140px;
@@ -77,30 +77,28 @@
         }
         /* 成員篩選標籤樣式 */
         .filter-btn {
-            display: flex; /* 使用 flex 確保內部對齊 */
+            display: flex;
             align-items: center;
             justify-content: center;
             padding: 0.6rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
-            font-weight: 600; /* font-semibold */
+            border-radius: 0.375rem;
+            font-weight: 600;
             transition: transform 0.2s, box-shadow 0.2s;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            white-space: nowrap; /* 防止文字換行 */
+            white-space: nowrap;
         }
         .filter-btn:hover {
-            transform: scale(1.03); /* 滑鼠懸停時放大 */
+            transform: scale(1.03);
         }
-        /* 「顯示全部」按鈕的特定樣式 */
         .filter-btn[data-filter="all"] {
-            background-color: #4b5563; /* gray-600 */
+            background-color: #4b5563;
             color: #ffffff;
         }
         .filter-btn[data-filter="all"].active {
-            background-color: #6366f1; /* indigo-500 */
+            background-color: #6366f1;
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
             transform: scale(1.02);
         }
-        /* 所有按鈕在啟用時的通用樣式 */
         .filter-btn.active {
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.25);
             transform: scale(1.02);
@@ -108,6 +106,41 @@
         /* 隱藏滾動條 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 新增：Modal 樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 2rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #4b5563; /* gray-600 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 90%;
+            width: 500px;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -116,6 +149,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
+        const CURRENT_APP_VERSION = 'V6.6'; // 手動設定當前應用程式版本
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
@@ -161,6 +195,84 @@
             {"name_jp": "甘結もか", "name_en": "Amayui Moka", "color": "#eca0aa", "avatar": "https://pbs.twimg.com/profile_images/1851908799499767813/WO_pmLid_400x400.jpg"}
         ];
         
+        // --- 新增：更新檢查相關函式 ---
+        function showUpdateModal(title, message, showDownloadButton = false) {
+            // 首先，移除任何已存在的 modal
+            const existingModal = document.getElementById('update-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'update-modal';
+            modalOverlay.className = 'modal-overlay';
+            
+            let downloadButtonHTML = '';
+            if (showDownloadButton) {
+                downloadButtonHTML = `<a href="https://github.com/renachiouo/vspo_clip_collector/releases" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
+            }
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="text-2xl font-bold text-cyan-400 mb-4">${title}</h3>
+                    <p class="text-gray-300">${message}</p>
+                    ${downloadButtonHTML}
+                    <button id="close-modal-btn" class="mt-4 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button>
+                </div>
+            `;
+
+            document.body.appendChild(modalOverlay);
+            
+            // 延遲一小段時間再加入 visible class 以觸發 CSS transition
+            setTimeout(() => {
+                modalOverlay.classList.add('visible');
+            }, 10);
+
+            // 關閉 modal 的事件監聽
+            modalOverlay.addEventListener('click', (e) => {
+                // 點擊背景或關閉按鈕時關閉
+                if (e.target === modalOverlay || e.target.id === 'close-modal-btn' || e.target.closest('#close-modal-btn')) {
+                    modalOverlay.classList.remove('visible');
+                    // 等待動畫結束後再從 DOM 中移除
+                    setTimeout(() => modalOverlay.remove(), 300);
+                }
+            });
+        }
+
+        async function checkForUpdates() {
+            showUpdateModal('檢查更新中...', '正在從 GitHub 獲取最新版本資訊，請稍候...');
+            try {
+                const response = await fetch('https://api.github.com/repos/renachiouo/vspo_clip_collector/commits?per_page=1');
+                if (!response.ok) {
+                    throw new Error(`GitHub API 請求失敗 (${response.status})`);
+                }
+                
+                const data = await response.json();
+                const latestCommitMessage = data[0]?.commit?.message || '';
+                
+                // 使用正規表達式從 commit message 中提取版本號 
+                const versionMatch = latestCommitMessage.match(/V(\d+\.\d+(\.\d+)?)/);
+                const latestVersion = versionMatch ? `V${versionMatch[1]}` : null;
+
+                if (!latestVersion) {
+                    throw new Error('無法從最新的 commit 中解析版本號。');
+                }
+
+                if (latestVersion === CURRENT_APP_VERSION) {
+                    showUpdateModal('檢查完成', `您目前使用的已是最新版本 (${CURRENT_APP_VERSION})。`);
+                } else {
+                    showUpdateModal(
+                        '發現新版本！', 
+                        `目前最新版本為 <strong>${latestVersion}</strong>，您使用的版本為 ${CURRENT_APP_VERSION}。<br><br>建議更新以獲取最新的功能與修正。`,
+                        true // 顯示下載按鈕
+                    );
+                }
+            } catch (error) {
+                console.error('檢查更新時發生錯誤:', error);
+                showUpdateModal('檢查失敗', `無法完成更新檢查，請稍後再試。<br>錯誤訊息: ${error.message}`);
+            }
+        }
+
         // --- UI 元件產生器 ---
         function createErrorDisplay(error) {
             const container = document.createElement('div');
@@ -318,29 +430,20 @@
 
         function createMemberFilterListHTML(members, activeFilter) {
             const listContainer = document.createElement('div');
-            // 手機上橫向滾動，電腦上垂直 flexbox 佈局
             listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
             listContainer.id = 'member-filter-list-container';
-
-            // 「顯示全部」按鈕
             const allBtn = document.createElement('button');
             allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
             allBtn.dataset.filter = 'all';
             allBtn.textContent = '顯示全部';
             listContainer.appendChild(allBtn);
-
-            // 成員標籤按鈕
             members.forEach(member => {
                 const btn = document.createElement('button');
                 const isActive = activeFilter === member.name_jp;
-                
                 btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
                 btn.dataset.filter = member.name_jp;
-                
-                // 設定背景色和文字顏色
                 btn.style.backgroundColor = member.color;
-                btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb'; // 淺色背景用深灰文字，深色背景用淺灰文字
-                
+                btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb';
                 btn.textContent = member.name_jp;
                 listContainer.appendChild(btn);
             });
@@ -415,17 +518,16 @@
         function render(onRenderComplete) {
             const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter } = state;
             
-            appContainer.innerHTML = ''; // 清空主容器
+            appContainer.innerHTML = '';
 
-            // --- 建立基本佈局 ---
             const header = document.createElement('header');
             header.className = "text-center pt-8 mb-8";
-            header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</h1>`;
+            header.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-cyan-400"><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處 <span class="text-lg align-middle text-gray-500">${CURRENT_APP_VERSION}</span></h1>`;
             
             const topBar = document.createElement('div');
             topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
             topBar.innerHTML = `
-                <div class="container mx-auto px-4 text-center text-sm text-gray-500 flex justify-center items-center space-x-4 flex-wrap">
+                <div class="container mx-auto px-4 text-center text-sm text-gray-500 flex justify-center items-center space-x-4 flex-wrap gap-y-2">
                     <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
                     <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
                     ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
@@ -433,21 +535,23 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
                         回報遺漏頻道/影片
                     </a>
+                    <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>
+                        檢查更新
+                    </button>
                 </div>`;
             
             const mainGrid = document.createElement('div');
             mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
 
-            // --- 左側篩選列 (手機版為頂部) ---
             const filterSection = document.createElement('aside');
-            filterSection.className = "md:col-start-1"; // 在電腦版，此為左側欄
+            filterSection.className = "md:col-start-1";
             const filterContainer = document.createElement('div');
             filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28 md:flex md:flex-col md:max-h-[calc(100vh-9rem)]";
             filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
             filterContainer.appendChild(createMemberFilterListHTML(members, activeMemberFilter));
             filterSection.appendChild(filterContainer);
 
-            // --- 右側主內容 ---
             const rightContent = document.createElement('main');
             rightContent.className = "md:col-start-2 min-w-0"; 
 
@@ -457,7 +561,6 @@
             } else if (apiError) {
                 rightContent.appendChild(createErrorDisplay(apiError));
             } else {
-                // 篩選邏輯
                 let filteredVideos = allVideos;
                 if (activeChannelFilter) {
                     filteredVideos = allVideos.filter(video => video.channelId === activeChannelFilter.id);
@@ -537,19 +640,17 @@
                     rightContent.appendChild(videosSection);
                 }
 
-                // 頻道列表區塊
                 const channelListSection = document.createElement('section');
                 const channelListHeader = document.createElement('div');
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
                 
-                // 決定頻道列表的資料來源與標題
                 const videosForChannelList = activeMemberFilter !== 'all'
                     ? allVideos.filter(video => video.title.includes(activeMemberFilter))
                     : allVideos;
                 
                 if (activeMemberFilter !== 'all') {
                     const member = members.find(m => m.name_jp === activeMemberFilter);
-                    const memberColor = member ? member.color : '#fbbf24'; // Fallback color
+                    const memberColor = member ? member.color : '#fbbf24';
                     channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">一個月內發布過 <span style="color: ${memberColor}">${activeMemberFilter}</span> 剪輯的頻道</h2>`;
                 } else {
                     channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p>`;
@@ -580,7 +681,6 @@
                 rightContent.appendChild(channelListSection);
             }
 
-            // --- 組合頁面 ---
             mainGrid.appendChild(filterSection);
             mainGrid.appendChild(rightContent);
             appContainer.appendChild(header);
@@ -589,7 +689,6 @@
 
             setupEventListeners();
 
-            // 如果有回呼函式，則在渲染完成後執行
             if (onRenderComplete) {
                 onRenderComplete();
             }
@@ -597,6 +696,7 @@
 
         function setupEventListeners() {
             setupSecretTrigger();
+            document.getElementById('check-update-btn')?.addEventListener('click', checkForUpdates);
             document.getElementById('view-latest-btn')?.addEventListener('click', () => {
                 state.activeView = 'latest';
                 render();
@@ -623,7 +723,7 @@
                     const filterList = document.getElementById('member-filter-list-container');
                     const scrollPosition = filterList ? filterList.scrollTop : 0;
             
-                    state.activeChannelFilter = null; // 清除頻道篩選
+                    state.activeChannelFilter = null;
                     state.activeMemberFilter = e.currentTarget.dataset.filter;
                     state.currentPage = 1; 
                     
@@ -640,7 +740,7 @@
             document.querySelectorAll('.channel-filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const button = e.currentTarget;
-                    state.activeMemberFilter = 'all'; // 清除成員篩選
+                    state.activeMemberFilter = 'all';
                     state.activeChannelFilter = {
                         id: button.dataset.channelId,
                         name: button.dataset.channelName,
