@@ -213,6 +213,12 @@
         const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
         
         // --- 更新檢查相關函式 ---
+        function isWebView() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            // 這是 Android WebView 常見的特徵字串
+            return userAgent.includes('wv');
+        }
+
         function showUpdateModal(title, message, showDownloadButton = false) {
             const existingModal = document.getElementById('update-modal');
             if (existingModal) existingModal.remove();
@@ -223,7 +229,19 @@
             
             let downloadButtonHTML = '';
             if (showDownloadButton) {
-                downloadButtonHTML = `<a href="https://github.com/renachiouo/vspo_clip_collector/releases" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
+                if (isWebView()) {
+                    // 在 WebView 中，顯示提示文字和可複製的網址
+                    const releaseUrl = "https://github.com/renachiouo/vspo_clip_collector/releases";
+                    downloadButtonHTML = `
+                        <div class="mt-6 p-3 bg-gray-900 rounded-lg">
+                            <p class="text-sm text-gray-400 mb-2">請複製以下網址，並在您的手機瀏覽器中開啟以下載更新：</p>
+                            <input type="text" readonly value="${releaseUrl}" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none select-all">
+                        </div>
+                    `;
+                } else {
+                    // 在一般瀏覽器中，顯示可點擊的按鈕
+                    downloadButtonHTML = `<a href="https://github.com/renachiouo/vspo_clip_collector/releases" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
+                }
             }
 
             modalOverlay.innerHTML = `
@@ -245,6 +263,14 @@
                     setTimeout(() => modalOverlay.remove(), 300);
                 }
             });
+
+            // 為網址輸入框增加點擊即全選的功能
+            const urlInput = modalOverlay.querySelector('input[type="text"]');
+            if (urlInput) {
+                urlInput.addEventListener('click', () => {
+                    urlInput.select();
+                });
+            }
         }
 
         async function checkForUpdates() {
@@ -847,4 +873,4 @@
 
     </script>
 </body>
-</html>
+</ht
