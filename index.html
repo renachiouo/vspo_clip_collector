@@ -149,7 +149,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V6.8'; 
+        const CURRENT_APP_VERSION = 'V6.9'; 
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
 
         let state = {
@@ -197,6 +197,7 @@
 
         const otherMemberGroups = {
             "VSPO! EN": [
+                {"name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true},
                 {"name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true},
                 {"name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true},
                 {"name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true},
@@ -215,7 +216,6 @@
         // --- 更新檢查相關函式 ---
         function isWebView() {
             const userAgent = navigator.userAgent.toLowerCase();
-            // 這是 Android WebView 常見的特徵字串
             return userAgent.includes('wv');
         }
 
@@ -230,7 +230,6 @@
             let downloadButtonHTML = '';
             if (showDownloadButton) {
                 if (isWebView()) {
-                    // 在 WebView 中，顯示提示文字和可複製的網址
                     const releaseUrl = "https://github.com/renachiouo/vspo_clip_collector/releases";
                     downloadButtonHTML = `
                         <div class="mt-6 p-3 bg-gray-900 rounded-lg">
@@ -239,7 +238,6 @@
                         </div>
                     `;
                 } else {
-                    // 在一般瀏覽器中，顯示可點擊的按鈕
                     downloadButtonHTML = `<a href="https://github.com/renachiouo/vspo_clip_collector/releases" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
                 }
             }
@@ -264,7 +262,6 @@
                 }
             });
 
-            // 為網址輸入框增加點擊即全選的功能
             const urlInput = modalOverlay.querySelector('input[type="text"]');
             if (urlInput) {
                 urlInput.addEventListener('click', () => {
@@ -873,4 +870,4 @@
 
     </script>
 </body>
-</ht
+</html>
