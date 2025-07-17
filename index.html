@@ -149,7 +149,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V7.0'; 
+        const CURRENT_APP_VERSION = 'V7.1'; 
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
 
@@ -739,7 +739,7 @@
                 if (activeChannelFilter) {
                     filteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id);
                 } else if (activeMemberFilter !== 'all') {
-                    filteredVideos = visibleVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()));
+                    filteredVideos = visibleVideos.filter(video => video.searchableText && video.searchableText.toLowerCase().includes(activeMemberFilter.toLowerCase()));
                 }
 
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
@@ -819,7 +819,7 @@
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
                 
                 const videosForChannelList = activeMemberFilter !== 'all'
-                    ? visibleVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()))
+                    ? visibleVideos.filter(video => video.searchableText && video.searchableText.toLowerCase().includes(activeMemberFilter.toLowerCase()))
                     : visibleVideos;
                 
                 if (activeMemberFilter !== 'all') {
