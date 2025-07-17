@@ -149,11 +149,13 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V6.9'; 
+        const CURRENT_APP_VERSION = 'V7.0'; 
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
+        const BLACKLIST_KEY = 'vspo_channel_blacklist';
 
         let state = {
             allVideos: [], 
+            blacklist: [],
             isLoading: true, 
             lastUpdated: null, 
             apiError: null,
@@ -213,6 +215,120 @@
         
         const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
         
+        // --- 黑名單管理 ---
+        function getBlacklist() {
+            try {
+                const stored = localStorage.getItem(BLACKLIST_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                console.error("讀取黑名單失敗:", e);
+                return [];
+            }
+        }
+
+        function saveBlacklist(blacklist) {
+            try {
+                localStorage.setItem(BLACKLIST_KEY, JSON.stringify(blacklist));
+            } catch (e) {
+                console.error("儲存黑名單失敗:", e);
+            }
+        }
+
+        function addToBlacklist(channel) {
+            const currentBlacklist = getBlacklist();
+            if (!currentBlacklist.some(item => item.id === channel.id)) {
+                const newBlacklist = [...currentBlacklist, channel];
+                saveBlacklist(newBlacklist);
+                state.blacklist = newBlacklist;
+                render(); // 重新渲染以套用黑名單
+                showBlacklistModal(); // 重新打開 modal 以更新列表
+            }
+        }
+
+        function removeFromBlacklist(channelId) {
+            const currentBlacklist = getBlacklist();
+            const newBlacklist = currentBlacklist.filter(item => item.id !== channelId);
+            saveBlacklist(newBlacklist);
+            state.blacklist = newBlacklist;
+            render(); // 重新渲染以套用黑名單
+            showBlacklistModal(); // 重新打開 modal 以更新列表
+        }
+
+        function showBlacklistModal() {
+            const existingModal = document.getElementById('blacklist-modal');
+            if (existingModal) existingModal.remove();
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'blacklist-modal';
+            modalOverlay.className = 'modal-overlay visible';
+
+            const currentBlacklist = getBlacklist();
+            const allChannels = [...new Map(state.allVideos.map(v => [v.channelId, {id: v.channelId, name: v.channelTitle}])).values()]
+                .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+            
+            const channelsToBlock = allChannels.filter(channel => !currentBlacklist.some(b => b.id === channel.id));
+
+            let blockedListHTML = '<p class="text-gray-400 text-sm">目前沒有已封鎖的頻道。</p>';
+            if (currentBlacklist.length > 0) {
+                blockedListHTML = currentBlacklist.map(channel => `
+                    <div class="flex items-center justify-between p-2 bg-gray-700 rounded-md">
+                        <span class="truncate">${channel.name}</span>
+                        <button class="unblock-btn text-red-400 hover:text-red-300 font-semibold text-sm" data-channel-id="${channel.id}">解除封鎖</button>
+                    </div>
+                `).join('');
+            }
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="text-2xl font-bold text-red-400 mb-4">管理個人黑名單</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2 text-gray-300">已封鎖清單</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">${blockedListHTML}</div>
+                    </div>
+
+                    <div class="border-t border-gray-600 pt-6">
+                        <h4 class="font-semibold mb-2 text-gray-300">新增封鎖</h4>
+                        <div class="flex space-x-2">
+                            <select id="channel-to-block-select" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-400">
+                                <option value="">-- 請選擇要封鎖的頻道 --</option>
+                                ${channelsToBlock.map(c => `<option value="${c.id}" data-name="${c.name}">${c.name}</option>`).join('')}
+                            </select>
+                            <button id="add-to-blacklist-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex-shrink-0">封鎖</button>
+                        </div>
+                    </div>
+
+                    <button id="close-blacklist-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button>
+                </div>
+            `;
+
+            document.body.appendChild(modalOverlay);
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay || e.target.id === 'close-blacklist-modal-btn' || e.target.closest('#close-blacklist-modal-btn')) {
+                    modalOverlay.classList.remove('visible');
+                    setTimeout(() => modalOverlay.remove(), 300);
+                }
+            });
+
+            document.getElementById('add-to-blacklist-btn').addEventListener('click', () => {
+                const select = document.getElementById('channel-to-block-select');
+                const channelId = select.value;
+                if (channelId) {
+                    const selectedOption = select.options[select.selectedIndex];
+                    const channelName = selectedOption.dataset.name;
+                    addToBlacklist({ id: channelId, name: channelName });
+                }
+            });
+
+            document.querySelectorAll('.unblock-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const channelId = e.currentTarget.dataset.channelId;
+                    removeFromBlacklist(channelId);
+                });
+            });
+        }
+
         // --- 更新檢查相關函式 ---
         function isWebView() {
             const userAgent = navigator.userAgent.toLowerCase();
@@ -559,9 +675,11 @@
         }
 
         function render(onRenderComplete) {
-            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter } = state;
+            const { allVideos, isLoading, lastUpdated, apiError, totalVisits, todayVisits, activeView, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter, blacklist } = state;
             
             appContainer.innerHTML = '';
+
+            const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
 
             const header = document.createElement('header');
             header.className = "text-center pt-8 mb-8";
@@ -575,18 +693,26 @@
             const topBar = document.createElement('div');
             topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
             topBar.innerHTML = `
-                <div class="container mx-auto px-4 text-center text-sm text-gray-500 flex justify-center items-center space-x-4 flex-wrap gap-y-2">
-                    <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
-                    <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
-                    ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
-                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                        回報遺漏頻道/影片
-                    </a>
-                    <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>
-                        檢查更新
-                    </button>
+                <div class="container mx-auto px-4 text-center text-sm text-gray-500 flex flex-col items-center space-y-2">
+                    <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
+                        <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
+                        <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
+                        ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
+                    </div>
+                    <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                            回報遺漏頻道/影片
+                        </a>
+                        <button id="manage-blacklist-btn" class="whitespace-nowrap font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.367zM14.89 13.477a6 6 0 01-8.367-8.367l8.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>
+                            管理黑名單
+                        </button>
+                        <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>
+                            檢查更新
+                        </button>
+                    </div>
                 </div>`;
             
             const mainGrid = document.createElement('div');
@@ -609,11 +735,11 @@
             } else if (apiError) {
                 rightContent.appendChild(createErrorDisplay(apiError));
             } else {
-                let filteredVideos = allVideos;
+                let filteredVideos = visibleVideos;
                 if (activeChannelFilter) {
-                    filteredVideos = allVideos.filter(video => video.channelId === activeChannelFilter.id);
+                    filteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id);
                 } else if (activeMemberFilter !== 'all') {
-                    filteredVideos = allVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()));
+                    filteredVideos = visibleVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()));
                 }
 
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
@@ -693,8 +819,8 @@
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
                 
                 const videosForChannelList = activeMemberFilter !== 'all'
-                    ? allVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()))
-                    : allVideos;
+                    ? visibleVideos.filter(video => video.title.toLowerCase().includes(activeMemberFilter.toLowerCase()))
+                    : visibleVideos;
                 
                 if (activeMemberFilter !== 'all') {
                     const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
@@ -745,6 +871,7 @@
         function setupEventListeners() {
             setupSecretTrigger();
             document.getElementById('check-update-btn')?.addEventListener('click', checkForUpdates);
+            document.getElementById('manage-blacklist-btn')?.addEventListener('click', showBlacklistModal);
             document.getElementById('view-latest-btn')?.addEventListener('click', () => {
                 state.activeView = 'latest';
                 render();
@@ -817,6 +944,7 @@
         }
 
         async function initializeApp(force = false, password = '', mode = 'normal') {
+            state.blacklist = getBlacklist();
             state.isLoading = true;
             render(); 
             try {
