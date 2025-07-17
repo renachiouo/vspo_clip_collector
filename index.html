@@ -739,7 +739,11 @@
                 if (activeChannelFilter) {
                     filteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id);
                 } else if (activeMemberFilter !== 'all') {
-                    filteredVideos = visibleVideos.filter(video => video.searchableText && video.searchableText.toLowerCase().includes(activeMemberFilter.toLowerCase()));
+                    // *** FIX: Use searchableText for filtering ***
+                    filteredVideos = visibleVideos.filter(video => {
+                        const textToSearch = (video.searchableText || video.title || '').toLowerCase();
+                        return textToSearch.includes(activeMemberFilter.toLowerCase());
+                    });
                 }
 
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
