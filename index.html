@@ -149,7 +149,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V7.1'; 
+        const CURRENT_APP_VERSION = 'V8.0'; 
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
 
@@ -735,16 +735,29 @@
             } else if (apiError) {
                 rightContent.appendChild(createErrorDisplay(apiError));
             } else {
-                let filteredVideos = visibleVideos;
+                let filteredVideos;
+                let videosForChannelList;
+
+                // --- 最終修正篩選邏輯 ---
                 if (activeChannelFilter) {
                     filteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id);
                 } else if (activeMemberFilter !== 'all') {
-                    // *** FIX: Use searchableText for filtering ***
+                    const filterKeyword = activeMemberFilter.toLowerCase();
                     filteredVideos = visibleVideos.filter(video => {
-                        const textToSearch = (video.searchableText || video.title || '').toLowerCase();
-                        return textToSearch.includes(activeMemberFilter.toLowerCase());
+                        // 嚴格模式：只使用 searchableText 進行篩選。
+                        // 如果影片沒有這個欄位，或欄位不是字串，就將其過濾掉。
+                        if (typeof video.searchableText !== 'string') {
+                            return false; 
+                        }
+                        // 後端已將 searchableText 轉為小寫，直接比對
+                        return video.searchableText.includes(filterKeyword);
                     });
+                } else {
+                    filteredVideos = visibleVideos;
                 }
+                
+                videosForChannelList = filteredVideos;
+                // --- 修正結束 ---
 
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter)) {
                     const filterName = activeChannelFilter ? activeChannelFilter.name : activeMemberFilter;
@@ -821,10 +834,6 @@
                 const channelListSection = document.createElement('section');
                 const channelListHeader = document.createElement('div');
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
-                
-                const videosForChannelList = activeMemberFilter !== 'all'
-                    ? visibleVideos.filter(video => video.searchableText && video.searchableText.toLowerCase().includes(activeMemberFilter.toLowerCase()))
-                    : visibleVideos;
                 
                 if (activeMemberFilter !== 'all') {
                     const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
