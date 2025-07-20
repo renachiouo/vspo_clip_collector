@@ -900,8 +900,8 @@
                     </div>`;
 
                 const filterControlsHTML = (() => {
-                    // ★ 修正：統一按鈕文字
-                    const latestButtonText = '最新12部';
+                    // ★ 修正：動態決定按鈕文字
+                    const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
                     const viewModeButtons = `
                         <div class="flex space-x-2">
                             <button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button>
@@ -959,7 +959,6 @@
 
                 if (activeView === 'latest') {
                     const grid = document.createElement('div');
-                    grid.id = 'latest-videos-grid';
                     const isShortsMode = activeVideoTypeFilter === 'short';
 
                     let gridClasses = 'grid gap-4 ';
