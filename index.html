@@ -22,7 +22,7 @@
             aspect-ratio: 9 / 16;
         }
 
-        /* ★ 新增：Shorts 模式下卡片的字體與間距調整 */
+        /* Shorts 模式下卡片的字體與間距調整 */
         .view-mode-shorts-only .group h3 {
             font-size: 0.875rem; /* text-sm */
             line-height: 1.25rem;
@@ -192,9 +192,10 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V9.0';
+        const CURRENT_APP_VERSION = 'V9.1'; // 版本號更新
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
+        const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
 
         let state = {
             allVideos: [], 
@@ -214,6 +215,17 @@
         };
 
         const appContainer = document.getElementById('app');
+
+        // 版本更新日誌
+        const UPDATE_LOGS = {
+            'V9.1': {
+                title: 'V9.1 更新情報！',
+                date: '2025-07-20',
+                features: [
+                    '【錯誤修正】修復了在手機上滑動時，頁面會自動跳回頂部的問題。'
+                ]
+            }
+        };
 
         // VSPO 成員資料 (分區)
         const vspoJPMembers = [
@@ -251,7 +263,7 @@
                 {"name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true}
             ],
             "VSPO! CN": [
-                {"name_jp": "小针彩", "filter_keyword": "小针彩", "color": "#FE688D", "forceWhiteText": true},
+                {"name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true},
                 {"name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true},
                 {"name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true},
                 {"name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true}
@@ -416,6 +428,54 @@
             if (urlInput) {
                 urlInput.addEventListener('click', () => urlInput.select());
             }
+        }
+
+        // 版本更新情報視窗
+        function showVersionUpdateModal(version) {
+            const log = UPDATE_LOGS[version];
+            if (!log) return;
+
+            const existingModal = document.getElementById('version-update-modal');
+            if (existingModal) existingModal.remove();
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'version-update-modal';
+            modalOverlay.className = 'modal-overlay';
+
+            const featuresHTML = log.features.map(feature => `
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 mr-2 text-green-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>${feature}</span>
+                </li>
+            `).join('');
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold text-green-400 mb-2">${log.title}</h3>
+                        <p class="text-sm text-gray-500 mb-6">發布日期: ${log.date}</p>
+                    </div>
+                    <ul class="space-y-3 text-gray-300">
+                        ${featuresHTML}
+                    </ul>
+                    <button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">我了解了</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modalOverlay);
+            setTimeout(() => modalOverlay.classList.add('visible'), 10);
+
+            const closeModal = () => {
+                modalOverlay.classList.remove('visible');
+                localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+                setTimeout(() => modalOverlay.remove(), 300);
+            };
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay || e.target.id === 'close-version-modal-btn' || e.target.closest('#close-version-modal-btn')) {
+                    closeModal();
+                }
+            });
         }
 
         async function checkForUpdates() {
@@ -855,7 +915,6 @@
                                 </div>
                             </div>`;
                         
-                        // ★ 修正：手機版排版邏輯
                         return `
                             <div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4">
                                 <div class="flex items-center space-x-4">
@@ -884,8 +943,7 @@
                         const grid = document.createElement('div');
                         const isShortsMode = activeVideoTypeFilter === 'short';
                         
-                        // ★ 修正：動態網格 class
-                        let gridClasses = 'grid gap-4 '; // 使用 gap-4 讓 shorts 模式間距更合適
+                        let gridClasses = 'grid gap-4 ';
                         if (isShortsMode) {
                             gridClasses += 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 view-mode-shorts-only';
                         } else {
@@ -1056,11 +1114,19 @@
                 state.activeChannelFilter = null;
                 render();
             });
-
+            
+            // ★ Bug Fix: 優化 resize 事件監聽器
+            let lastWidth = window.innerWidth;
             window.addEventListener('resize', () => {
-                if (state.activeView === 'latest') {
-                    render();
+                const currentWidth = window.innerWidth;
+                const breakpoint = 1280;
+                // 只有在跨越斷點時才重新渲染
+                if ((lastWidth < breakpoint && currentWidth >= breakpoint) || (lastWidth >= breakpoint && currentWidth < breakpoint)) {
+                    if (state.activeView === 'latest') {
+                        render();
+                    }
                 }
+                lastWidth = currentWidth;
             });
         }
 
@@ -1097,6 +1163,11 @@
             } finally {
                 state.isLoading = false;
                 render();
+                // ★ 修正：將版本檢查移到這裡，確保在頁面渲染完成後執行
+                const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+                if (lastSeenVersion !== CURRENT_APP_VERSION) {
+                    showVersionUpdateModal(CURRENT_APP_VERSION);
+                }
             }
         }
         
@@ -1135,4 +1206,4 @@
 
     </script>
 </body>
-</html>
+</html
