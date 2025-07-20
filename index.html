@@ -39,6 +39,13 @@
             padding: 0.75rem; /* p-3 */
         }
 
+        /* ★ 新增：在手機版上隱藏第11和12部最新影片 */
+        @media (max-width: 1279px) {
+            #latest-videos-grid > .video-card:nth-child(n+11) {
+                display: none;
+            }
+        }
+
         /* Tooltip 樣式 */
         .tooltip {
             position: relative;
@@ -192,7 +199,7 @@
 
     <script type="module">
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V9.1'; // 版本號更新
+        const CURRENT_APP_VERSION = 'V9.2';
         const PROXY_ENDPOINT = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app'; 
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -222,11 +229,17 @@
                 title: 'V9.1 更新情報！',
                 date: '2025-07-20',
                 features: [
-                    '【錯誤修正】修復了在手機上滑動時，頁面會自動跳回頂部的問題。'
+                    '【錯誤修正】修復了在手機上滑動時，頁面會自動跳回頂部的問題。',
+                ]
+            },
+            'V9.2': {
+                title: 'V9.2 更新情報！',
+                date: '2025-07-20',
+                features: [
+                    '【錯誤修正】修復了在手機上與shorts兩欄配置導致的錯誤隱藏問題。'
                 ]
             }
         };
-
         // VSPO 成員資料 (分區)
         const vspoJPMembers = [
             {"name_jp": "花芽すみれ", "filter_keyword": "花芽すみれ", "color": "#b0c4de"},
@@ -431,10 +444,7 @@
         }
 
         // 版本更新情報視窗
-        function showVersionUpdateModal(version) {
-            const log = UPDATE_LOGS[version];
-            if (!log) return;
-
+        function showVersionUpdateModal(versionsToShow) {
             const existingModal = document.getElementById('version-update-modal');
             if (existingModal) existingModal.remove();
 
@@ -442,22 +452,33 @@
             modalOverlay.id = 'version-update-modal';
             modalOverlay.className = 'modal-overlay';
 
-            const featuresHTML = log.features.map(feature => `
-                <li class="flex items-start">
-                    <svg class="w-5 h-5 mr-2 text-green-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>${feature}</span>
-                </li>
-            `).join('');
+            let allFeaturesHTML = '';
+            versionsToShow.forEach((version, index) => {
+                const log = UPDATE_LOGS[version];
+                if (!log) return;
 
-            modalOverlay.innerHTML = `
-                <div class="modal-content">
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-green-400 mb-2">${log.title}</h3>
-                        <p class="text-sm text-gray-500 mb-6">發布日期: ${log.date}</p>
+                const featuresHTML = log.features.map(feature => `
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 mr-2 text-green-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>${feature}</span>
+                    </li>
+                `).join('');
+
+                allFeaturesHTML += `
+                    ${index > 0 ? '<hr class="border-gray-600 my-4">' : ''}
+                    <div class="text-center mb-4">
+                        <h4 class="text-xl font-bold text-green-400">${log.title}</h4>
+                        <p class="text-xs text-gray-500">發布日期: ${log.date}</p>
                     </div>
                     <ul class="space-y-3 text-gray-300">
                         ${featuresHTML}
                     </ul>
+                `;
+            });
+
+            modalOverlay.innerHTML = `
+                <div class="modal-content">
+                    ${allFeaturesHTML}
                     <button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">我了解了</button>
                 </div>
             `;
@@ -467,7 +488,7 @@
 
             const closeModal = () => {
                 modalOverlay.classList.remove('visible');
-                localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+                localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION);
                 setTimeout(() => modalOverlay.remove(), 300);
             };
 
@@ -529,7 +550,8 @@
                 return "剛剛";
             };
             const card = document.createElement('div');
-            card.className = "group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
+            // ★ 新增：為卡片本身加上 video-card class，方便 CSS 選取
+            card.className = "video-card group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
             
             const channelLink = showChannel ? `
                 <a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 mt-2">
@@ -815,7 +837,7 @@
             rightContent.className = "md:col-start-2 min-w-0"; 
 
             if (isLoading) {
-                const videoSkeletons = Array.from({ length: 10 }).map(() => createSkeleton('card')).map(el => el.outerHTML).join('');
+                const videoSkeletons = Array.from({ length: 12 }).map(() => createSkeleton('card')).map(el => el.outerHTML).join('');
                 rightContent.innerHTML = `<section style="min-height: 720px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">${videoSkeletons}</div></section>`;
             } else if (apiError) {
                 rightContent.innerHTML = createErrorDisplay(apiError);
@@ -883,7 +905,7 @@
                         </div>`;
 
                     const filterControlsHTML = (() => {
-                        const latestButtonText = window.innerWidth >= 1280 ? '最新12部' : '最新10部';
+                        const latestButtonText = '最新12部';
                         const viewModeButtons = `
                             <div class="flex space-x-2">
                                 <button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button>
@@ -941,6 +963,7 @@
 
                     if (activeView === 'latest') {
                         const grid = document.createElement('div');
+                        grid.id = 'latest-videos-grid';
                         const isShortsMode = activeVideoTypeFilter === 'short';
                         
                         let gridClasses = 'grid gap-4 ';
@@ -951,7 +974,7 @@
                         }
                         grid.className = gridClasses;
 
-                        const sliceCount = window.innerWidth >= 1280 ? 12 : 10;
+                        const sliceCount = 12;
                         videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
                         viewContainer.appendChild(grid);
                     } else { 
@@ -1134,6 +1157,13 @@
             state.blacklist = getBlacklist();
             state.isLoading = true;
             render(); 
+
+            // ★ 修正：將版本檢查移到最前面，確保立即觸發
+            const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+            if (lastSeenVersion !== CURRENT_APP_VERSION) {
+                showVersionUpdateModal(CURRENT_APP_VERSION);
+            }
+
             try {
                 const dataPackage = await fetchAllDataFromProxy(force, password, mode);
 
@@ -1163,11 +1193,6 @@
             } finally {
                 state.isLoading = false;
                 render();
-                // ★ 修正：將版本檢查移到這裡，確保在頁面渲染完成後執行
-                const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
-                if (lastSeenVersion !== CURRENT_APP_VERSION) {
-                    showVersionUpdateModal(CURRENT_APP_VERSION);
-                }
             }
         }
         
