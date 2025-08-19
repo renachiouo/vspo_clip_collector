@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>れなち的VSPO中文精華收集處</title>
+    <title>れなち的VSPO精華收集處</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html { scroll-behavior: smooth; }
@@ -59,11 +59,11 @@
         .modal-overlay, .dropdown-menu {
             position: fixed; z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
         }
-        .modal-overlay { top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; }
+        .modal-overlay { top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .modal-overlay.visible, .dropdown-menu.visible { opacity: 1; pointer-events: auto; }
         .modal-content {
             background-color: #1f2937; padding: 2rem; border-radius: 0.5rem; border: 1px solid #4b5563;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 90%; width: 500px; transform: scale(0.95); transition: transform 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 95%; width: 500px; transform: scale(0.95); transition: transform 0.3s ease;
         }
         .modal-overlay.visible .modal-content { transform: scale(1); }
         .dropdown-menu {
@@ -77,6 +77,17 @@
             border-radius: 50%; animation: spin .6s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        /* 語言切換按鈕樣式 */
+        .lang-switcher-btn {
+            padding: 0.5rem 1.5rem; border: 2px solid transparent; border-radius: 9999px;
+            font-weight: 600; transition: all 0.3s ease;
+        }
+        .lang-switcher-btn.active {
+            border-color: #6366f1; background-color: #4338ca; color: #ffffff;
+        }
+        .lang-switcher-btn:not(.active) {
+            background-color: #374151; color: #d1d5db;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -85,18 +96,19 @@
 
 <script type="module">
     // --- 全域變數與狀態管理 ---
-    const CURRENT_APP_VERSION = 'V10.0';
+    const CURRENT_APP_VERSION = 'V11.0'; 
     const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
     const BLACKLIST_KEY = 'vspo_channel_blacklist';
     const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
+    const LANGUAGE_KEY = 'vspo_active_language';
 
     let state = {
         allVideos: [],
         blacklist: [],
         isLoading: true,
-        isClassifying: false, // 新增：是否正在分類中
-        needsClassification: false, // 新增：是否需要觸發分類
-        classificationIntervalId: null, // 新增：輪詢計時器ID
+        isClassifying: false, 
+        needsClassification: false,
+        classificationIntervalId: null,
         lastUpdated: null,
         apiError: null,
         totalVisits: 0,
@@ -108,12 +120,22 @@
         itemsPerPage: 10,
         activeMemberFilter: 'all',
         activeChannelFilter: null,
+        activeLanguage: 'cn',
     };
-
+    
     const appContainer = document.getElementById('app');
 
     // 版本更新日誌
     const UPDATE_LOGS = {
+        'V11.0': {
+            title: 'V11.0 多語言支援！',
+            date: '2025-07-31',
+            features: [
+                '【重大更新】新增「日文精華」頻道，可在頂部自由切換！',
+                '【功能增強】您的語言偏好會被記住，下次訪問時自動載入。',
+                '【UI優化】「同元配信」彈出視窗改為更美觀的卡片式佈局。',
+            ]
+        },
         'V10.0': {
             title: 'V10.0 效能升級！',
             date: '2025-07-21',
@@ -123,18 +145,12 @@
                 '【自動更新】現在啟動應用程式時，會自動在背景檢查是否有新版本，需要時才會提示您更新。',
             ]
         },
-        'V9.2': { 
-            title: 'V9.2 更新情報！',
-            date: '2025-07-21',
+        'V11.0': {
+            title: 'V11.0 日文精華支援',
+            date: '2025-08-19',
             features: [
-                '【錯誤修正】修復了手機版最新影片顯示不一致的問題。'
-            ]
-        },
-        'V9.1': {
-            title: 'V9.1 更新情報！',
-            date: '2025-07-20',
-            features: [
-                '【錯誤修正】修復了在手機上滑動時，頁面會自動跳回頂部的問題。',
+                '【重大更新】新增「日文精華」頁面，可在頂部自由切換！',
+                '【重大更新】新增「同元配信」可查看「同場直播」之剪輯！',
             ]
         }
     };
@@ -144,233 +160,122 @@
     const otherMemberGroups = { "VSPO! EN": [ {"name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true}, {"name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true}, {"name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true}, {"name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true}, {"name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true} ], "VSPO! CN": [ {"name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true}, {"name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true}, {"name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true}, {"name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true} ] };
     const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
 
-    // --- 黑名單 & Modal 相關函式 ---
-    function getBlacklist() {
-        try {
-            const stored = localStorage.getItem(BLACKLIST_KEY);
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            console.error("讀取黑名單失敗:", e);
-            return [];
-        }
-    }
-
-    function saveBlacklist(blacklist) {
-        try {
-            localStorage.setItem(BLACKLIST_KEY, JSON.stringify(blacklist));
-        } catch (e) {
-            console.error("儲存黑名單失敗:", e);
-        }
-    }
-
-    function addToBlacklist(channel) {
-        const currentBlacklist = getBlacklist();
-        if (!currentBlacklist.some(item => item.id === channel.id)) {
-            const newBlacklist = [...currentBlacklist, channel];
-            saveBlacklist(newBlacklist);
-            state.blacklist = newBlacklist;
-            render();
-            showBlacklistModal();
-        }
-    }
-
-    function removeFromBlacklist(channelId) {
-        const currentBlacklist = getBlacklist();
-        const newBlacklist = currentBlacklist.filter(item => item.id !== channelId);
-        saveBlacklist(newBlacklist);
-        state.blacklist = newBlacklist;
-        render();
-        showBlacklistModal();
-    }
-
+    // --- 黑名單 & Modal 相關函式 (與之前相同) ---
+    function getBlacklist() { try { const stored = localStorage.getItem(BLACKLIST_KEY); return stored ? JSON.parse(stored) : []; } catch (e) { console.error("讀取黑名單失敗:", e); return []; } }
+    function saveBlacklist(blacklist) { try { localStorage.setItem(BLACKLIST_KEY, JSON.stringify(blacklist)); } catch (e) { console.error("儲存黑名單失敗:", e); } }
+    function addToBlacklist(channel) { const currentBlacklist = getBlacklist(); if (!currentBlacklist.some(item => item.id === channel.id)) { const newBlacklist = [...currentBlacklist, channel]; saveBlacklist(newBlacklist); state.blacklist = newBlacklist; render(); showBlacklistModal(); } }
+    function removeFromBlacklist(channelId) { const currentBlacklist = getBlacklist(); const newBlacklist = currentBlacklist.filter(item => item.id !== channelId); saveBlacklist(newBlacklist); state.blacklist = newBlacklist; render(); showBlacklistModal(); }
     function showBlacklistModal() {
         const existingModal = document.getElementById('blacklist-modal');
         if (existingModal) existingModal.remove();
-
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'blacklist-modal';
         modalOverlay.className = 'modal-overlay visible';
-
         const currentBlacklist = getBlacklist();
-        const allChannels = [...new Map(state.allVideos.map(v => [v.channelId, {id: v.channelId, name: v.channelTitle}])).values()]
-            .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-
+        const allChannels = [...new Map(state.allVideos.map(v => [v.channelId, {id: v.channelId, name: v.channelTitle}])).values()].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
         const channelsToBlock = allChannels.filter(channel => !currentBlacklist.some(b => b.id === channel.id));
-
         let blockedListHTML = '<p class="text-gray-400 text-sm">目前沒有已封鎖の頻道。</p>';
         if (currentBlacklist.length > 0) {
-            blockedListHTML = currentBlacklist.map(channel => `
-                <div class="flex items-center justify-between p-2 bg-gray-700 rounded-md">
-                    <span class="truncate">${channel.name}</span>
-                    <button class="unblock-btn text-red-400 hover:text-red-300 font-semibold text-sm" data-channel-id="${channel.id}">解除封鎖</button>
-                </div>
-            `).join('');
+            blockedListHTML = currentBlacklist.map(channel => `<div class="flex items-center justify-between p-2 bg-gray-700 rounded-md"><span class="truncate">${channel.name}</span><button class="unblock-btn text-red-400 hover:text-red-300 font-semibold text-sm" data-channel-id="${channel.id}">解除封鎖</button></div>`).join('');
         }
-
-        modalOverlay.innerHTML = `
-            <div class="modal-content">
-                <h3 class="text-2xl font-bold text-red-400 mb-4">管理個人黑名單</h3>
-                <div class="mb-6">
-                    <h4 class="font-semibold mb-2 text-gray-300">已封鎖清單</h4>
-                    <div class="space-y-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">${blockedListHTML}</div>
-                </div>
-                <div class="border-t border-gray-600 pt-6">
-                    <h4 class="font-semibold mb-2 text-gray-300">新增封鎖</h4>
-                    <div class="flex space-x-2">
-                        <select id="channel-to-block-select" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-400">
-                            <option value="">-- 請選擇要封鎖的頻道 --</option>
-                            ${channelsToBlock.map(c => `<option value="${c.id}" data-name="${c.name}">${c.name}</option>`).join('')}
-                        </select>
-                        <button id="add-to-blacklist-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex-shrink-0">封鎖</button>
-                    </div>
-                </div>
-                <button id="close-blacklist-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button>
-            </div>`;
-
+        modalOverlay.innerHTML = `<div class="modal-content"><h3 class="text-2xl font-bold text-red-400 mb-4">管理個人黑名單</h3><div class="mb-6"><h4 class="font-semibold mb-2 text-gray-300">已封鎖清單</h4><div class="space-y-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">${blockedListHTML}</div></div><div class="border-t border-gray-600 pt-6"><h4 class="font-semibold mb-2 text-gray-300">新增封鎖</h4><div class="flex space-x-2"><select id="channel-to-block-select" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-red-400"><option value="">-- 請選擇要封鎖的頻道 --</option>${channelsToBlock.map(c => `<option value="${c.id}" data-name="${c.name}">${c.name}</option>`).join('')}</select><button id="add-to-blacklist-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex-shrink-0">封鎖</button></div></div><button id="close-blacklist-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button></div>`;
         document.body.appendChild(modalOverlay);
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay || e.target.id === 'close-blacklist-modal-btn' || e.target.closest('#close-blacklist-modal-btn')) {
-                modalOverlay.classList.remove('visible');
-                setTimeout(() => modalOverlay.remove(), 300);
-            }
-        });
-
-        document.getElementById('add-to-blacklist-btn').addEventListener('click', () => {
-            const select = document.getElementById('channel-to-block-select');
-            const channelId = select.value;
-            if (channelId) {
-                const selectedOption = select.options[select.selectedIndex];
-                const channelName = selectedOption.dataset.name;
-                addToBlacklist({ id: channelId, name: channelName });
-            }
-        });
-
-        document.querySelectorAll('.unblock-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const channelId = e.currentTarget.dataset.channelId;
-                removeFromBlacklist(channelId);
-            });
-        });
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay || e.target.id === 'close-blacklist-modal-btn' || e.target.closest('#close-blacklist-modal-btn')) { modalOverlay.classList.remove('visible'); setTimeout(() => modalOverlay.remove(), 300); } });
+        document.getElementById('add-to-blacklist-btn').addEventListener('click', () => { const select = document.getElementById('channel-to-block-select'); const channelId = select.value; if (channelId) { const selectedOption = select.options[select.selectedIndex]; const channelName = selectedOption.dataset.name; addToBlacklist({ id: channelId, name: channelName }); } });
+        document.querySelectorAll('.unblock-btn').forEach(btn => { btn.addEventListener('click', (e) => { const channelId = e.currentTarget.dataset.channelId; removeFromBlacklist(channelId); }); });
     }
-
     function showUpdateModal(title, message, showDownloadButton = false) {
         const existingModal = document.getElementById('update-modal');
         if (existingModal) existingModal.remove();
-
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'update-modal';
         modalOverlay.className = 'modal-overlay';
-
         let downloadButtonHTML = '';
-        if (showDownloadButton) {
-            const releaseUrl = "https://github.com/renachiouo/vspo_clip_collector/releases";
-            if (navigator.userAgent.toLowerCase().includes('wv')) {
-                downloadButtonHTML = `
-                    <div class="mt-6 p-3 bg-gray-900 rounded-lg">
-                        <p class="text-sm text-gray-400 mb-2">請複製以下網址，並在您的手機瀏覽器中開啟以下載更新：</p>
-                        <input type="text" readonly value="${releaseUrl}" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none select-all">
-                    </div>`;
-            } else {
-                downloadButtonHTML = `<a href="${releaseUrl}" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`;
-            }
-        }
-
-        modalOverlay.innerHTML = `
-            <div class="modal-content">
-                <h3 class="text-2xl font-bold text-cyan-400 mb-4">${title}</h3>
-                <p class="text-gray-300">${message}</p>
-                ${downloadButtonHTML}
-                <button id="close-modal-btn" class="mt-4 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button>
-            </div>`;
-
+        if (showDownloadButton) { const releaseUrl = "https://github.com/renachiouo/vspo_clip_collector/releases"; if (navigator.userAgent.toLowerCase().includes('wv')) { downloadButtonHTML = `<div class="mt-6 p-3 bg-gray-900 rounded-lg"><p class="text-sm text-gray-400 mb-2">請複製以下網址，並在您的手機瀏覽器中開啟以下載更新：</p><input type="text" readonly value="${releaseUrl}" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none select-all"></div>`; } else { downloadButtonHTML = `<a href="${releaseUrl}" target="_blank" rel="noopener noreferrer" class="mt-6 block w-full text-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">前往下載頁面</a>`; } }
+        modalOverlay.innerHTML = `<div class="modal-content"><h3 class="text-2xl font-bold text-cyan-400 mb-4">${title}</h3><p class="text-gray-300">${message}</p>${downloadButtonHTML}<button id="close-modal-btn" class="mt-4 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">關閉</button></div>`;
         document.body.appendChild(modalOverlay);
-
         setTimeout(() => modalOverlay.classList.add('visible'), 10);
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay || e.target.id === 'close-modal-btn' || e.target.closest('#close-modal-btn')) {
-                modalOverlay.classList.remove('visible');
-                setTimeout(() => modalOverlay.remove(), 300);
-            }
-        });
-
-        const urlInput = modalOverlay.querySelector('input[type="text"]');
-        if (urlInput) {
-            urlInput.addEventListener('click', () => urlInput.select());
-        }
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay || e.target.id === 'close-modal-btn' || e.target.closest('#close-modal-btn')) { modalOverlay.classList.remove('visible'); setTimeout(() => modalOverlay.remove(), 300); } });
+        const urlInput = modalOverlay.querySelector('input[type="text"]'); if (urlInput) { urlInput.addEventListener('click', () => urlInput.select()); }
     }
-
     function showVersionUpdateModal(versionsToShow) {
         const existingModal = document.getElementById('version-update-modal');
         if (existingModal) existingModal.remove();
-
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'version-update-modal';
         modalOverlay.className = 'modal-overlay';
-
         let allFeaturesHTML = '';
         if (Array.isArray(versionsToShow)) {
             versionsToShow.forEach((version, index) => {
-                const log = UPDATE_LOGS[version];
-                if (!log) return;
-
-                const featuresHTML = log.features.map(feature => `
-                    <li class="flex items-start">
-                        <svg class="w-5 h-5 mr-2 text-green-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span>${feature}</span>
-                    </li>
-                `).join('');
-
-                allFeaturesHTML += `
-                    ${index > 0 ? '<hr class="border-gray-600 my-4">' : ''}
-                    <div class="text-center mb-4">
-                        <h4 class="text-xl font-bold text-green-400">${log.title}</h4>
-                        <p class="text-xs text-gray-500">發布日期: ${log.date}</p>
-                    </div>
-                    <ul class="space-y-3 text-gray-300">
-                        ${featuresHTML}
-                    </ul>
-                `;
+                const log = UPDATE_LOGS[version]; if (!log) return;
+                const featuresHTML = log.features.map(feature => `<li class="flex items-start"><svg class="w-5 h-5 mr-2 text-green-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>${feature}</span></li>`).join('');
+                allFeaturesHTML += `${index > 0 ? '<hr class="border-gray-600 my-4">' : ''}<div class="text-center mb-4"><h4 class="text-xl font-bold text-green-400">${log.title}</h4><p class="text-xs text-gray-500">發布日期: ${log.date}</p></div><ul class="space-y-3 text-gray-300">${featuresHTML}</ul>`;
             });
         }
-
-        modalOverlay.innerHTML = `
-            <div class="modal-content">
-                ${allFeaturesHTML}
-                <button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">我了解了</button>
-            </div>
-        `;
-
+        modalOverlay.innerHTML = `<div class="modal-content">${allFeaturesHTML}<button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">我了解了</button></div>`;
         document.body.appendChild(modalOverlay);
         setTimeout(() => modalOverlay.classList.add('visible'), 10);
+        const closeModal = () => { modalOverlay.classList.remove('visible'); localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION); setTimeout(() => modalOverlay.remove(), 300); };
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay || e.target.id === 'close-version-modal-btn' || e.target.closest('#close-version-modal-btn')) { closeModal(); } });
+    }
+    
+    async function showRelatedClipsModal(originalStreamInfo) {
+        const modalId = 'related-clips-modal';
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) existingModal.remove();
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = modalId;
+        modalOverlay.className = 'modal-overlay visible';
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        modalContent.style.width = '90%';
+        modalContent.style.maxWidth = '1200px';
+        modalContent.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-teal-400">同場直播所有剪輯</h3>
+                <button id="close-related-clips-modal-btn" class="p-2 rounded-full hover:bg-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="related-clips-container" class="max-h-[75vh] overflow-y-auto p-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    ${Array.from({ length: 4 }).map(() => createSkeleton('card').outerHTML).join('')}
+                </div>
+            </div>`;
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+        const closeModal = () => { modalOverlay.classList.remove('visible'); setTimeout(() => modalOverlay.remove(), 300); };
+        modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+        document.getElementById('close-related-clips-modal-btn').addEventListener('click', closeModal);
 
-        const closeModal = () => {
-            modalOverlay.classList.remove('visible');
-            localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION);
-            setTimeout(() => modalOverlay.remove(), 300);
-        };
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay || e.target.id === 'close-version-modal-btn' || e.target.closest('#close-version-modal-btn')) {
-                closeModal();
+        try {
+            const data = await fetchApi('get-related-clips', { params: { platform: originalStreamInfo.platform, id: originalStreamInfo.id } });
+            const container = document.getElementById('related-clips-container');
+            if (data.videos && data.videos.length > 0) {
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
+                data.videos.forEach(video => grid.appendChild(createVideoCard(video, true)));
+                container.innerHTML = '';
+                container.appendChild(grid);
+            } else {
+                container.innerHTML = `<p class="text-center text-gray-400 p-8">找不到其他相關剪輯。</p>`;
             }
-        });
+        } catch(error) {
+            console.error("獲取相關剪輯失敗:", error);
+            document.getElementById('related-clips-container').innerHTML = createErrorDisplay(error.message);
+        }
     }
 
-    // --- API 呼叫函式 (重構) ---
     async function fetchApi(endpoint, options = {}) {
         const url = new URL(`${API_BASE_URL}/${endpoint}`);
-        if (options.params) {
-            Object.keys(options.params).forEach(key => url.searchParams.append(key, options.params[key]));
-        }
-        
+        const defaultParams = { version: CURRENT_APP_VERSION };
+        const allParams = { ...defaultParams, ...options.params };
+        Object.keys(allParams).forEach(key => url.searchParams.append(key, allParams[key]));
         const response = await fetch(url, {
             method: options.method || 'GET',
             headers: { 'Content-Type': 'application/json', ...options.headers },
             body: options.body ? JSON.stringify(options.body) : null,
         });
-
         const data = await response.json().catch(() => ({ error: `請求失敗，狀態碼: ${response.status}` }));
         if (!response.ok) {
             throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
@@ -378,43 +283,28 @@
         return data;
     }
 
-    // --- 更新檢查相關函式 (重構) ---
     async function performUpdateCheck(isManual = false) {
-        if (isManual) {
-            showUpdateModal('檢查更新中...', '正在從 GitHub 獲取最新版本資訊，請稍候...');
-        }
+        if (isManual) { showUpdateModal('檢查更新中...', '正在從 GitHub 獲取最新版本資訊，請稍候...'); }
         try {
             const response = await fetch('https://api.github.com/repos/renachiouo/vspo_clip_collector/commits?per_page=1');
             if (!response.ok) throw new Error(`GitHub API 請求失敗 (${response.status})`);
-
             const data = await response.json();
             const latestCommitMessage = data[0]?.commit?.message || '';
-
             const versionMatch = latestCommitMessage.match(/V(\d+\.\d+(\.\d+)?)/);
             const latestVersion = versionMatch ? `V${versionMatch[1]}` : null;
-
             if (!latestVersion) throw new Error('無法從最新的 commit 中解析版本號。');
-
             const isNewer = parseFloat(latestVersion.slice(1)) > parseFloat(CURRENT_APP_VERSION.slice(1));
-
             if (isNewer) {
-                showUpdateModal(
-                    '發現新版本！',
-                    `目前最新版本為 <strong>${latestVersion}</strong>，您使用的版本為 ${CURRENT_APP_VERSION}。<br><br>建議更新以獲取最新的功能與修正。`,
-                    true
-                );
+                showUpdateModal('發現新版本！', `目前最新版本為 <strong>${latestVersion}</strong>，您使用的版本為 ${CURRENT_APP_VERSION}。<br><br>建議更新以獲取最新的功能與修正。`, true);
             } else if (isManual) {
                 showUpdateModal('檢查完成', `您目前使用的已是最新版本 (${CURRENT_APP_VERSION})。`);
             }
         } catch (error) {
             console.error('檢查更新時發生錯誤:', error);
-            if (isManual) {
-                showUpdateModal('檢查失敗', `無法完成更新檢查，請稍後再試。<br>錯誤訊息: ${error.message}`);
-            }
+            if (isManual) { showUpdateModal('檢查失敗', `無法完成更新檢查，請稍後再試。<br>錯誤訊息: ${error.message}`); }
         }
     }
 
-    // --- UI 元件產生器 ---
     function createErrorDisplay(error) {
         let errorMessage = error;
         let errorHint = "請檢查代理伺服器是否正常運作，或稍後再試。";
@@ -430,19 +320,21 @@
         const timeAgo = (dateStr) => {
             const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
             const intervals = { '年': 31536000, '個月': 2592000, '天': 86400, '小時': 3600, '分鐘': 60 };
-            for (let unit in intervals) {
-                if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`;
-            }
+            for (let unit in intervals) { if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`; }
             return "剛剛";
         };
         const card = document.createElement('div');
         card.className = "video-card group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
 
-        const channelLink = showChannel ? `
-            <a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 mt-2">
-                <img src="${video.channelAvatarUrl}" class="w-6 h-6 rounded-full bg-gray-700">
-                <p class="text-sm text-gray-400 hover:text-white transition-colors truncate">${video.channelTitle}</p>
-            </a>` : '';
+        const channelLink = showChannel ? `<a href="https://www.youtube.com/channel/${video.channelId}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 mt-2"><img src="${video.channelAvatarUrl}" class="w-6 h-6 rounded-full bg-gray-700"><p class="text-sm text-gray-400 hover:text-white transition-colors truncate">${video.channelTitle}</p></a>` : '';
+        
+        let relatedClipsButton = '';
+        if (video.originalStreamInfo) {
+            // 修改：將 SVG 圖示改為 Emoji
+            relatedClipsButton = `<button class="related-clips-btn p-2 rounded-full bg-teal-500/20 hover:bg-teal-500/40 transition-colors" title="查看同場直播所有剪輯">
+                <span class="text-lg">🎬</span>
+            </button>`;
+        }
 
         card.innerHTML = `
             <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="video-thumbnail-container block w-full bg-gray-700 overflow-hidden">
@@ -454,10 +346,21 @@
                 </a>
                 ${channelLink}
                 <div class="flex justify-between items-center text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
-                    <span>${formatNumber(video.viewCount)} 次觀看</span>
-                    <span>${timeAgo(video.publishedAt)}</span>
+                    <span class="truncate">${formatNumber(video.viewCount)} 次觀看</span>
+                    <div class="flex items-center gap-x-2">
+                        ${relatedClipsButton}
+                        <span class="flex-shrink-0">${timeAgo(video.publishedAt)}</span>
+                    </div>
                 </div>
             </div>`;
+        
+        if (video.originalStreamInfo) {
+            card.querySelector('.related-clips-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showRelatedClipsModal(video.originalStreamInfo);
+            });
+        }
         return card;
     }
 
@@ -466,13 +369,20 @@
         const timeAgo = (dateStr) => {
             const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
             const intervals = { '年': 31536000, '個月': 2592000, '天': 86400, '小時': 3600, '分鐘': 60 };
-            for (let unit in intervals) {
-                if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`;
-            }
+            for (let unit in intervals) { if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`; }
             return "剛剛";
         };
         const item = document.createElement('div');
         item.className = "flex items-center space-x-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors duration-200";
+        
+        let relatedClipsButton = '';
+        if (video.originalStreamInfo) {
+             // 修改：將 SVG 圖示改為 Emoji
+            relatedClipsButton = `<button class="related-clips-btn ml-auto p-2 rounded-full bg-teal-500/20 hover:bg-teal-500/40 transition-colors" title="查看同場直播所有剪輯">
+                 <span class="text-lg">🎬</span>
+            </button>`;
+        }
+        
         item.innerHTML = `
             <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 w-32 aspect-video bg-gray-700 rounded-md overflow-hidden">
                 <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/128x72/1a202c/e53e3e?text=Error';">
@@ -489,7 +399,16 @@
                     <span>${formatNumber(video.viewCount)} 次觀看</span>
                     <span>${timeAgo(video.publishedAt)}</span>
                 </div>
-            </div>`;
+            </div>
+            ${relatedClipsButton}`;
+
+        if (video.originalStreamInfo) {
+            item.querySelector('.related-clips-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showRelatedClipsModal(video.originalStreamInfo);
+            });
+        }
         return item;
     }
 
@@ -498,55 +417,16 @@
         const timeAgo = (dateStr) => {
             const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
             const intervals = { '年': 31536000, '個月': 2592000, '天': 86400, '小時': 3600, '分鐘': 60 };
-            for (let unit in intervals) {
-                if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`;
-            }
+            for (let unit in intervals) { if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`; }
             return "剛剛";
         };
-
         const card = document.createElement('div');
         card.className = "group rounded-lg overflow-hidden shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300 relative";
         card.style.backgroundImage = `url('${channel.avatarUrl}')`;
         card.style.backgroundSize = 'cover';
         card.style.backgroundPosition = 'center';
-
         const video = channel.latestVideo;
-
-        card.innerHTML = `
-            <div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div>
-            <div class="relative z-10 flex flex-col h-full">
-                <div class="p-4">
-                    <div class="flex items-center space-x-3">
-                        <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0">
-                            <img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20">
-                        </a>
-                        <div class="flex-1 min-w-0">
-                            <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer">
-                                <p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p>
-                            </a>
-                            <p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p>
-                        </div>
-                        <button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="px-4 text-sm text-gray-400">最新影片:</div>
-                <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2">
-                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
-                </a>
-                <div class="p-4 flex flex-col flex-grow mt-auto">
-                    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
-                        <h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3>
-                    </a>
-                    <div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50">
-                        <span>${formatNumber(video.viewCount)} 次觀看</span>
-                        <span>${timeAgo(video.publishedAt)}</span>
-                    </div>
-                </div>
-            </div>`;
+        card.innerHTML = `<div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div><div class="relative z-10 flex flex-col h-full"><div class="p-4"><div class="flex items-center space-x-3"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0"><img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20"></a><div class="flex-1 min-w-0"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer"><p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p></a><p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p></div><button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" /></svg></button></div></div><div class="px-4 text-sm text-gray-400">最新影片:</div><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2"><img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';"></a><div class="p-4 flex flex-col flex-grow mt-auto"><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow"><h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3></a><div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50"><span>${formatNumber(video.viewCount)} 次觀看</span><span>${timeAgo(video.publishedAt)}</span></div></div></div>`;
         return card;
     }
 
@@ -564,38 +444,27 @@
         const listContainer = document.createElement('div');
         listContainer.className = 'flex flex-row space-x-2 md:flex-col md:space-y-2 md:space-x-0 overflow-x-auto md:overflow-y-auto no-scrollbar pb-2 md:pb-0';
         listContainer.id = 'member-filter-list-container';
-
         const allBtn = document.createElement('button');
         allBtn.className = `filter-btn flex-shrink-0 ${activeFilter === 'all' ? 'active' : ''}`;
         allBtn.dataset.filter = 'all';
         allBtn.textContent = '顯示全部';
         listContainer.appendChild(allBtn);
-
         const createMemberButton = (member) => {
             const btn = document.createElement('button');
             const isActive = activeFilter === member.filter_keyword;
             btn.className = `filter-btn flex-shrink-0 ${isActive ? 'active' : ''}`;
             btn.dataset.filter = member.filter_keyword;
             btn.style.backgroundColor = member.color;
-
-            if (member.forceWhiteText) {
-                btn.style.color = '#FFFFFF';
-            } else {
-                btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb';
-            }
-
+            if (member.forceWhiteText) { btn.style.color = '#FFFFFF'; } else { btn.style.color = isColorLight(member.color) ? '#1f2937' : '#f9fafb'; }
             btn.textContent = member.name_jp;
             return btn;
         };
-
         jpMembers.forEach(member => listContainer.appendChild(createMemberButton(member)));
-
         for (const groupName in otherGroups) {
             const divider = document.createElement('div');
             divider.className = 'text-xs text-gray-500 pt-2 pb-1 pl-2 md:pt-3 md:pb-1 whitespace-nowrap';
             divider.textContent = groupName;
             listContainer.appendChild(divider);
-
             otherGroups[groupName].forEach(member => listContainer.appendChild(createMemberButton(member)));
         }
         return listContainer;
@@ -604,8 +473,8 @@
     function createSkeleton(type) {
         const skeleton = document.createElement('div');
         if (type === 'card') {
-            skeleton.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col";
-            skeleton.innerHTML = `<div class="w-full aspect-video bg-gray-700 animate-pulse"></div><div class="p-4"><div class="h-4 bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div><div class="h-4 bg-gray-700 rounded w-1/2 animate-pulse"></div></div>`;
+            skeleton.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col animate-pulse";
+            skeleton.innerHTML = `<div class="w-full aspect-video bg-gray-700"></div><div class="p-4"><div class="h-4 bg-gray-700 rounded w-3/4 mb-4"></div><div class="h-4 bg-gray-700 rounded w-1/2"></div></div>`;
         } else if (type === 'list') {
             skeleton.className = "flex items-center space-x-4 p-3 bg-gray-800 rounded-lg animate-pulse";
             skeleton.innerHTML = `<div class="w-32 h-[72px] bg-gray-700 rounded-md"></div><div class="flex-1 space-y-2"><div class="h-4 bg-gray-700 rounded w-5/6"></div><div class="h-4 bg-gray-700 rounded w-1/3"></div><div class="h-3 bg-gray-700 rounded w-1/2"></div></div>`;
@@ -624,25 +493,16 @@
             if (isDisabled) btn.disabled = true;
             return btn;
         };
-        const createEllipsis = () => {
-            const span = document.createElement('span');
-            span.className = 'pagination-ellipsis';
-            span.textContent = '...';
-            return span;
-        };
+        const createEllipsis = () => { const span = document.createElement('span'); span.className = 'pagination-ellipsis'; span.textContent = '...'; return span; };
         container.appendChild(createBtn('‹', currentPage - 1, currentPage === 1));
         if (totalPages <= 7) {
-            for (let i = 1; i <= totalPages; i++) {
-                container.appendChild(createBtn(i, i, false, i === currentPage));
-            }
+            for (let i = 1; i <= totalPages; i++) { container.appendChild(createBtn(i, i, false, i === currentPage)); }
         } else {
             const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
             const sortedPages = Array.from(pages).filter(p => p > 0 && p <= totalPages).sort((a, b) => a - b);
             let lastPage = 0;
             for (const page of sortedPages) {
-                if (lastPage !== 0 && page - lastPage > 1) {
-                    container.appendChild(createEllipsis());
-                }
+                if (lastPage !== 0 && page - lastPage > 1) { container.appendChild(createEllipsis()); }
                 container.appendChild(createBtn(page, page, false, page === currentPage));
                 lastPage = page;
             }
@@ -651,22 +511,25 @@
         return container;
     }
 
-    // --- 核心渲染函式 (重構) ---
     function render(onRenderComplete) {
-        const { allVideos, isLoading, isClassifying, lastUpdated, apiError, totalVisits, todayVisits, activeView, activeVideoTypeFilter, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter, blacklist, isFilterDropdownOpen } = state;
+        const { allVideos, isLoading, isClassifying, lastUpdated, apiError, totalVisits, todayVisits, activeView, activeVideoTypeFilter, currentPage, itemsPerPage, activeMemberFilter, activeChannelFilter, blacklist, isFilterDropdownOpen, activeLanguage } = state;
         
-        appContainer.innerHTML = ''; // 清空容器
+        appContainer.innerHTML = ''; 
 
-        // Header
         const header = document.createElement('header');
-        header.className = "text-center pt-8 mb-8";
+        header.className = "text-center pt-8 mb-4";
+        const titleText = activeLanguage === 'cn' ? 'VSPO中文精華收集處' : 'VSPO日文精華收集處';
+        document.title = `れなち的${titleText}`; 
         header.innerHTML = `
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 flex justify-center items-baseline flex-wrap gap-x-3 px-4">
-                <span><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的VSPO中文精華收集處</span>
+                <span><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的${titleText}</span>
                 <span class="text-lg align-middle text-gray-500 whitespace-nowrap">${CURRENT_APP_VERSION}</span>
-            </h1>`;
+            </h1>
+            <div id="lang-switcher" class="mt-6 flex justify-center items-center space-x-4">
+                <button data-lang="cn" class="lang-switcher-btn ${activeLanguage === 'cn' ? 'active' : ''}">中文精華</button>
+                <button data-lang="jp" class="lang-switcher-btn ${activeLanguage === 'jp' ? 'active' : ''}">日文精華</button>
+            </div>`;
 
-        // Top Bar
         const topBar = document.createElement('div');
         topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
         topBar.innerHTML = `
@@ -677,22 +540,12 @@
                     ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
                 </div>
                 <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
-                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                        回報遺漏頻道/影片
-                    </a>
-                    <button id="manage-blacklist-btn" class="whitespace-nowrap font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.367zM14.89 13.477a6 6 0 01-8.367-8.367l8.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>
-                        管理黑名單
-                    </button>
-                    <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>
-                        檢查更新
-                    </button>
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>回報遺漏頻道/影片</a>
+                    <button id="manage-blacklist-btn" class="whitespace-nowrap font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.367zM14.89 13.477a6 6 0 01-8.367-8.367l8.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>管理黑名單</button>
+                    <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>檢查更新</button>
                 </div>
             </div>`;
         
-        // --- 主要內容區 ---
         const mainGrid = document.createElement('div');
         mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
         
@@ -708,164 +561,76 @@
         rightContent.className = "md:col-start-2 min-w-0";
 
         if (isLoading) {
-            const videoSkeletons = Array.from({ length: 12 }).map(() => createSkeleton('card')).map(el => el.outerHTML).join('');
+            const videoSkeletons = Array.from({ length: 12 }).map(() => createSkeleton('card').outerHTML).join('');
             rightContent.innerHTML = `<section style="min-height: 720px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">${videoSkeletons}</div></section>`;
         } else if (apiError) {
             rightContent.innerHTML = createErrorDisplay(apiError);
         } else {
             const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
-            
             let baseFilteredVideos;
-            if (activeChannelFilter) {
-                baseFilteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id);
-            } else if (activeMemberFilter !== 'all') {
-                const filterKeyword = activeMemberFilter.toLowerCase();
-                baseFilteredVideos = visibleVideos.filter(video => (video.searchableText || '').includes(filterKeyword));
-            } else {
-                baseFilteredVideos = visibleVideos;
-            }
-
+            if (activeChannelFilter) { baseFilteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id); } 
+            else if (activeMemberFilter !== 'all') { const filterKeyword = activeMemberFilter.toLowerCase(); baseFilteredVideos = visibleVideos.filter(video => (video.searchableText || '').includes(filterKeyword)); } 
+            else { baseFilteredVideos = visibleVideos; }
             let filteredVideos;
-            if (!isClassifying && activeVideoTypeFilter !== 'all') {
-                filteredVideos = baseFilteredVideos.filter(v => v.videoType === activeVideoTypeFilter);
-            } else {
-                filteredVideos = baseFilteredVideos;
-            }
-
+            if (!isClassifying && activeVideoTypeFilter !== 'all') { filteredVideos = baseFilteredVideos.filter(v => v.videoType === activeVideoTypeFilter); } 
+            else { filteredVideos = baseFilteredVideos; }
             const videosForChannelList = baseFilteredVideos;
-
             if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter || activeVideoTypeFilter !== 'all')) {
                 const filterName = activeChannelFilter ? activeChannelFilter.name : activeMemberFilter;
                 let message = `找不到關於「${filterName}」的影片。`;
-                if (activeVideoTypeFilter !== 'all') {
-                    message = `找不到符合條件的 ${activeVideoTypeFilter === 'short' ? 'Shorts 短片' : '一般影片'}。`;
-                }
+                if (activeVideoTypeFilter !== 'all') { message = `找不到符合條件的 ${activeVideoTypeFilter === 'short' ? 'Shorts 短片' : '一般影片'}。`; }
                 rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">${message}</p>`;
             } else {
                 const videosSection = document.createElement('section');
                 videosSection.id = 'videos-section';
-
                 if (activeChannelFilter) {
                     const filterBanner = document.createElement('div');
                     filterBanner.className = 'flex items-center justify-between bg-purple-900/50 text-purple-200 px-4 py-2 rounded-lg mb-6';
-                    filterBanner.innerHTML = `
-                        <span>目前篩選中：<strong class="font-semibold">${activeChannelFilter.name}</strong></span>
-                        <button id="clear-channel-filter-btn" class="p-1 rounded-full hover:bg-white/20 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </button>`;
+                    filterBanner.innerHTML = `<span>目前篩選中：<strong class="font-semibold">${activeChannelFilter.name}</strong></span><button id="clear-channel-filter-btn" class="p-1 rounded-full hover:bg-white/20 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
                     videosSection.appendChild(filterBanner);
                 }
-
                 const videosHeader = document.createElement('div');
                 videosHeader.className = "flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4";
-                
-                const titleHTML = `
-                    <div class="flex items-center">
-                        <h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2>
-                        <div class="tooltip ml-2">
-                            <button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button>
-                            <div class="tooltiptext">
-                                <p class="font-semibold mb-2">說明：</p>
-                                <p>1. 伺服器快取每 20 分鐘更新一次</p>
-                                <p>2. 為關鍵字搜尋，故可能出現：</p>
-                                <div class="pl-4">
-                                    <p>a. 含VSPO關鍵字的非VSPO烤肉</p>
-                                    <p>b. 含中文關鍵字的外文剪輯</p>
-                                    <p class="mt-2">有以上情形請至頁首回報處回報</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-
+                const titleHTML = `<div class="flex items-center"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2><div class="tooltip ml-2"><button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button><div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 20 分鐘更新一次</p><p>2. 為關鍵字搜尋，故可能出現：</p><div class="pl-4"><p>a. 含VSPO關鍵字的非VSPO烤肉</p><p>b. 含中文關鍵字的外文剪輯</p><p class="mt-2">有以上情形請至頁首回報處回報</p></div></div></div></div>`;
                 const filterControlsHTML = (() => {
                     const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
-                    const viewModeButtons = `
-                        <div class="flex space-x-2">
-                            <button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button>
-                            <button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button>
-                        </div>`;
-
+                    const viewModeButtons = `<div class="flex space-x-2"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
                     const typeLabels = { all: '全部顯示', video: '只看影片', short: '只看Shorts' };
                     const classifyingSpinner = `<div class="spinner"></div>`;
-
-                    const desktopTypeFilters = `
-                        <div id="desktop-type-filters" class="hidden md:flex space-x-2">
-                            <button data-type-filter="all" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>
-                                ${isClassifying ? classifyingSpinner : ''} <span>${isClassifying ? '分類中' : '全部'}</span>
-                            </button>
-                            <button data-type-filter="video" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看影片</button>
-                            <button data-type-filter="short" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看Shorts</button>
-                        </div>`;
-                    
-                    const mobileTypeFilter = `
-                        <div class="relative md:hidden">
-                            <button id="mobile-filter-toggle" class="tab-btn type-filter-btn flex items-center space-x-2" ${isClassifying ? 'disabled' : ''}>
-                                ${isClassifying ? classifyingSpinner : ''}
-                                <span>${isClassifying ? '分類中...' : typeLabels[activeVideoTypeFilter]}</span>
-                                ${!isClassifying ? `<svg class="w-4 h-4 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>` : ''}
-                            </button>
-                            <div id="mobile-filter-menu" class="dropdown-menu ${isFilterDropdownOpen ? 'visible' : ''}">
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="all">全部顯示</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="video">只看影片</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="short">只看Shorts</a>
-                            </div>
-                        </div>`;
-
-                    return `
-                        <div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4">
-                            <div class="flex items-center space-x-4">
-                                ${desktopTypeFilters}
-                                ${mobileTypeFilter}
-                            </div>
-                            <div class="md:border-l-2 border-gray-600 md:pl-4">
-                                ${viewModeButtons}
-                            </div>
-                        </div>`;
+                    const desktopTypeFilters = `<div id="desktop-type-filters" class="hidden md:flex space-x-2"><button data-type-filter="all" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>${isClassifying ? classifyingSpinner : ''} <span>${isClassifying ? '分類中' : '全部'}</span></button><button data-type-filter="video" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看影片</button><button data-type-filter="short" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看Shorts</button></div>`;
+                    const mobileTypeFilter = `<div class="relative md:hidden"><button id="mobile-filter-toggle" class="tab-btn type-filter-btn flex items-center space-x-2" ${isClassifying ? 'disabled' : ''}>${isClassifying ? classifyingSpinner : ''}<span>${isClassifying ? '分類中...' : typeLabels[activeVideoTypeFilter]}</span>${!isClassifying ? `<svg class="w-4 h-4 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>` : ''}</button><div id="mobile-filter-menu" class="dropdown-menu ${isFilterDropdownOpen ? 'visible' : ''}"><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="all">全部顯示</a><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="video">只看影片</a><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="short">只看Shorts</a></div></div>`;
+                    return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4"><div class="flex items-center space-x-4">${desktopTypeFilters}${mobileTypeFilter}</div><div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div></div>`;
                 })();
-                
                 videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
                 videosSection.appendChild(videosHeader);
-                
                 const viewContainer = document.createElement('div');
                 viewContainer.style.minHeight = '720px';
-
                 const videosToDisplay = filteredVideos;
-
                 if (activeView === 'latest') {
                     const grid = document.createElement('div');
                     const isShortsMode = !isClassifying && activeVideoTypeFilter === 'short';
-
                     let gridClasses = 'grid gap-4 ';
-                    if (isShortsMode) {
-                        gridClasses += 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 view-mode-shorts-only';
-                    } else {
-                        gridClasses += 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
-                    }
+                    if (isShortsMode) { gridClasses += 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 view-mode-shorts-only'; } 
+                    else { gridClasses += 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; }
                     grid.className = gridClasses;
-
                     const sliceCount = window.innerWidth < 1280 ? 10 : 12;
                     videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
                     viewContainer.appendChild(grid);
-                } else { // 'all' view
+                } else {
                     const listContainer = document.createElement('div');
                     listContainer.className = 'space-y-3';
                     const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
                     const startIndex = (currentPage - 1) * itemsPerPage;
                     const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
-
                     paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
                     viewContainer.appendChild(listContainer);
-                    if (totalPages > 1) {
-                        viewContainer.appendChild(createPaginationControls(totalPages, currentPage));
-                    }
+                    if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
                 }
                 videosSection.appendChild(viewContainer);
                 rightContent.appendChild(videosSection);
-
                 const channelListSection = document.createElement('section');
                 const channelListHeader = document.createElement('div');
                 channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
-
                 if (activeMemberFilter !== 'all') {
                     const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
                     const memberColor = member ? member.color : '#fbbf24';
@@ -874,19 +639,10 @@
                     channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p>`;
                 }
                 channelListSection.appendChild(channelListHeader);
-
                 const channels = {};
-                videosForChannelList.forEach(video => {
-                    if (!channels[video.channelId]) {
-                        channels[video.channelId] = { id: video.channelId, name: video.channelTitle, subscriberCount: video.subscriberCount, latestVideo: video, avatarUrl: video.channelAvatarUrl };
-                    }
-                });
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                const channelData = Object.values(channels)
-                    .filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo)
-                    .sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
-
+                videosForChannelList.forEach(video => { if (!channels[video.channelId]) { channels[video.channelId] = { id: video.channelId, name: video.channelTitle, subscriberCount: video.subscriberCount, latestVideo: video, avatarUrl: video.channelAvatarUrl }; } });
+                const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const channelData = Object.values(channels).filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo).sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
                 if (channelData.length > 0) {
                     const channelListGrid = document.createElement('div');
                     channelListGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
@@ -895,17 +651,14 @@
                 } else if (activeMemberFilter !== 'all') {
                     channelListSection.innerHTML += `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到一個月內發布過「${activeMemberFilter}」剪輯的頻道。</p>`;
                 }
-
                 rightContent.appendChild(channelListSection);
             }
         }
-
         mainGrid.appendChild(filterSection);
         mainGrid.appendChild(rightContent);
         appContainer.appendChild(header);
         appContainer.appendChild(topBar);
         appContainer.appendChild(mainGrid);
-
         setupEventListeners();
         if (onRenderComplete) onRenderComplete();
     }
@@ -914,116 +667,47 @@
         setupSecretTrigger();
         document.getElementById('check-update-btn')?.addEventListener('click', () => performUpdateCheck(true));
         document.getElementById('manage-blacklist-btn')?.addEventListener('click', showBlacklistModal);
-        document.getElementById('view-latest-btn')?.addEventListener('click', () => {
-            state.activeView = 'latest';
-            render();
-        });
-        document.getElementById('view-all-btn')?.addEventListener('click', () => {
-            state.activeView = 'all';
-            state.currentPage = 1;
-            render();
-        });
-
-        document.querySelectorAll('#desktop-type-filters .type-filter-btn').forEach(btn => {
+        
+        document.querySelectorAll('#lang-switcher .lang-switcher-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter;
-                state.currentPage = 1;
-                render();
+                const lang = e.currentTarget.dataset.lang;
+                if (lang !== state.activeLanguage) {
+                    state.activeLanguage = lang;
+                    localStorage.setItem(LANGUAGE_KEY, lang);
+                    state.activeMemberFilter = 'all';
+                    state.activeChannelFilter = null;
+                    state.currentPage = 1;
+                    initializeApp();
+                }
             });
         });
 
+        document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
+        document.getElementById('view-all-btn')?.addEventListener('click', () => { state.activeView = 'all'; state.currentPage = 1; render(); });
+        document.querySelectorAll('#desktop-type-filters .type-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter; state.currentPage = 1; render(); }); });
         const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
         const mobileFilterMenu = document.getElementById('mobile-filter-menu');
-
         if (mobileFilterToggle) {
-            mobileFilterToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                state.isFilterDropdownOpen = !state.isFilterDropdownOpen;
-                render();
-            });
-
-            mobileFilterMenu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter;
-                    state.currentPage = 1;
-                    state.isFilterDropdownOpen = false;
-                    render();
-                });
-            });
-
-            document.addEventListener('click', (e) => {
-                if (state.isFilterDropdownOpen && !mobileFilterMenu?.contains(e.target) && !mobileFilterToggle.contains(e.target)) {
-                    state.isFilterDropdownOpen = false;
-                    render();
-                }
-            });
+            mobileFilterToggle.addEventListener('click', (e) => { e.stopPropagation(); state.isFilterDropdownOpen = !state.isFilterDropdownOpen; render(); });
+            mobileFilterMenu.querySelectorAll('a').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter; state.currentPage = 1; state.isFilterDropdownOpen = false; render(); }); });
+            document.addEventListener('click', (e) => { if (state.isFilterDropdownOpen && !mobileFilterMenu?.contains(e.target) && !mobileFilterToggle.contains(e.target)) { state.isFilterDropdownOpen = false; render(); } });
         }
-
-        document.querySelectorAll('.pagination-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const page = parseInt(e.currentTarget.dataset.page, 10);
-                if (page && page !== state.currentPage) {
-                    state.currentPage = page;
-                    render(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-                }
-            });
-        });
-
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filterList = document.getElementById('member-filter-list-container');
-                const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 };
-                state.activeChannelFilter = null;
-                state.activeMemberFilter = e.currentTarget.dataset.filter;
-                state.currentPage = 1;
-                render(() => {
-                    const newFilterList = document.getElementById('member-filter-list-container');
-                    if (newFilterList) {
-                        newFilterList.scrollTop = scrollPosition.top;
-                        newFilterList.scrollLeft = scrollPosition.left;
-                    }
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                });
-            });
-        });
-
-        document.querySelectorAll('.channel-filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const button = e.currentTarget;
-                state.activeMemberFilter = 'all';
-                state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName };
-                state.currentPage = 1;
-                render(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-            });
-        });
-
-        document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => {
-            state.activeChannelFilter = null;
-            render();
-        });
-
+        document.querySelectorAll('.pagination-btn').forEach(btn => { btn.addEventListener('click', (e) => { const page = parseInt(e.currentTarget.dataset.page, 10); if (page && page !== state.currentPage) { state.currentPage = page; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); } }); });
+        document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filterList = document.getElementById('member-filter-list-container'); const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 }; state.activeChannelFilter = null; state.activeMemberFilter = e.currentTarget.dataset.filter; state.currentPage = 1; render(() => { const newFilterList = document.getElementById('member-filter-list-container'); if (newFilterList) { newFilterList.scrollTop = scrollPosition.top; newFilterList.scrollLeft = scrollPosition.left; } window.scrollTo({ top: 0, behavior: 'smooth' }); }); }); });
+        document.querySelectorAll('.channel-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const button = e.currentTarget; state.activeMemberFilter = 'all'; state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName }; state.currentPage = 1; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); }); });
+        document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => { state.activeChannelFilter = null; render(); });
         let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
             const currentWidth = window.innerWidth;
             const breakpoint = 1280;
-            if ((lastWidth < breakpoint && currentWidth >= breakpoint) || (lastWidth >= breakpoint && currentWidth < breakpoint)) {
-                if (state.activeView === 'latest') {
-                    render();
-                }
-            }
+            if ((lastWidth < breakpoint && currentWidth >= breakpoint) || (lastWidth >= breakpoint && currentWidth < breakpoint)) { if (state.activeView === 'latest') { render(); } }
             lastWidth = currentWidth;
         });
     }
 
-    // --- 分類與輪詢 ---
     function startClassificationPolling() {
-        if (state.classificationIntervalId) {
-            clearInterval(state.classificationIntervalId);
-        }
+        if (state.classificationIntervalId) { clearInterval(state.classificationIntervalId); }
         console.log("開始輪詢分類狀態...");
-
         state.classificationIntervalId = setInterval(async () => {
             try {
                 const status = await fetchApi('check-status');
@@ -1032,57 +716,67 @@
                     clearInterval(state.classificationIntervalId);
                     state.classificationIntervalId = null;
                     state.isClassifying = false;
-                    
-                    // 重新獲取一次資料以確保拿到最新的 videoType
-                    const finalData = await fetchApi('youtube');
+                    const finalData = await fetchApi('youtube', { params: { lang: state.activeLanguage, no_increment: 'true' } });
                     state.allVideos = finalData.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-                    render(); // 使用最終資料重新渲染
+                    render();
                 }
             } catch (error) {
                 console.error("輪詢失敗:", error);
                 clearInterval(state.classificationIntervalId);
                 state.isClassifying = false;
-                render(); // 出錯時也更新UI，解除鎖定狀態
+                render();
             }
-        }, 3000); // 每 3 秒輪詢一次
+        }, 3000);
     }
 
-    // --- 主應用程式初始化 (重構) ---
     async function initializeApp(force = false, password = '') {
+        state.activeLanguage = localStorage.getItem(LANGUAGE_KEY) || 'cn';
         state.blacklist = getBlacklist();
         state.isLoading = true;
         render();
 
-        // 檢查版本更新日誌
         const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
-        const allVersions = Object.keys(UPDATE_LOGS).sort((a, b) => parseFloat(b.slice(1)) - parseFloat(a.slice(1)));
-        const newVersionsToShow = [];
-        for(const v of allVersions) {
-            if (!lastSeenVersion || parseFloat(v.slice(1)) > parseFloat(lastSeenVersion.slice(1))) {
-                newVersionsToShow.push(v);
-            } else {
-                break;
+        if (lastSeenVersion !== CURRENT_APP_VERSION) {
+            const allVersions = Object.keys(UPDATE_LOGS).sort((a, b) => parseFloat(b.slice(1)) - parseFloat(a.slice(1)));
+            const newVersionsToShow = [];
+            for(const v of allVersions) {
+                if (!lastSeenVersion || parseFloat(v.slice(1)) > parseFloat(lastSeenVersion.slice(1))) { newVersionsToShow.push(v); } else { break; }
             }
-        }
-        if (newVersionsToShow.length > 0) {
-            showVersionUpdateModal(newVersionsToShow.reverse());
+            if (newVersionsToShow.length > 0) { showVersionUpdateModal(newVersionsToShow.reverse()); }
         }
 
         try {
-            const dataPackage = await fetchApi('youtube', { params: { force_refresh: force, password } });
+            // BUG 修復：改用 sessionStorage 來防止重新整理時重複計數
+            const apiParams = { lang: state.activeLanguage, force_refresh: force, password };
+            const visitCountedInSession = sessionStorage.getItem('vspo_visit_counted');
 
-            state.allVideos = dataPackage.videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+            if (!visitCountedInSession) {
+                // 如果 session 中沒有標記，代表是本次會話的首次訪問
+                sessionStorage.setItem('vspo_visit_counted', 'true');
+            } else {
+                // 如果有標記，代表是重新整理或後續操作，則不增加計數
+                apiParams.no_increment = 'true';
+            }
+            
+            const dataPackage = await fetchApi('youtube', { params: apiParams });
+            
+            const videos = dataPackage.videos.map(v => {
+                if (v.originalStreamInfo && typeof v.originalStreamInfo === 'string') {
+                    try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); } 
+                    catch (e) { console.error(`解析 'originalStreamInfo' 失敗 (Video ID: ${v.id}):`, e); v.originalStreamInfo = null; }
+                }
+                return v;
+            });
+
+            state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
             state.lastUpdated = new Date(dataPackage.timestamp);
             state.totalVisits = dataPackage.totalVisits || 0;
             state.todayVisits = dataPackage.todayVisits || 0;
             
-            // 檢查是否有未分類的影片
             state.needsClassification = state.allVideos.some(v => typeof v.videoType === 'undefined');
-
             if (state.needsClassification) {
                 console.log("偵測到未分類的影片，啟動背景分類程序。");
                 state.isClassifying = true;
-                // "Fire-and-forget" 觸發分類 API，然後開始輪詢
                 fetchApi('classify-videos', { method: 'POST' }).catch(err => console.error("觸發分類失敗:", err));
                 startClassificationPolling();
             }
@@ -1090,13 +784,10 @@
         } catch (error) {
             console.error("初始化失敗:", error);
             state.apiError = error.message;
-            if (force) {
-                alert(`錯誤: ${error.message || '未知錯誤'}`);
-            }
+            if (force) { alert(`錯誤: ${error.message || '未知錯誤'}`); }
         } finally {
             state.isLoading = false;
             render();
-            // 在主要內容載入後，才在背景檢查 GitHub 更新
             setTimeout(() => performUpdateCheck(false), 2000);
         }
     }
@@ -1105,7 +796,6 @@
         let sequence = [];
         let lastClickTime = 0;
         const targetSequence = ['れ', 'な', 'ち'];
-
         document.querySelectorAll('.secret-trigger').forEach(span => {
             span.addEventListener('click', (e) => {
                 const char = e.target.dataset.char;
@@ -1115,19 +805,14 @@
                 lastClickTime = now;
                 if (sequence.join('') === targetSequence.join('')) {
                     console.log("秘密通道已觸發！");
-                    const input = prompt("請輸入管理員密碼：");
-                    if (input) {
-                        const parts = input.split(',');
-                        const password = parts[0];
-                        const mode = parts[1] || 'normal';
-                        alert(`正在以 ${mode} 模式執行指令...`);
-                        initializeApp(true, password, mode);
+                    const password = prompt("請輸入管理員密碼：");
+                    if (password) {
+                        alert(`正在執行強制刷新...`);
+                        initializeApp(true, password);
                     }
                     sequence = [];
                 }
-                if (sequence.length >= targetSequence.length && sequence.join('') !== targetSequence.join('')) {
-                   sequence = [];
-                }
+                if (sequence.length >= targetSequence.length && sequence.join('') !== targetSequence.join('')) { sequence = []; }
             });
         });
     }
