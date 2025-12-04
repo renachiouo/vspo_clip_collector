@@ -323,8 +323,6 @@
 
         .admin-tab-content {
             display: none;
-            flex-grow: 1;
-            overflow-y: auto;
             padding-top: 1.5rem;
         }
 
@@ -714,7 +712,7 @@
                     <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
                 </div>
-                <div class="flex-grow min-h-0">
+                <div class="flex-grow min-h-0 overflow-y-auto">
                     <div id="tab-pending_jp" class="admin-tab-content active space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
                     <div id="tab-whitelist_jp" class="admin-tab-content space-y-2">
                         <div class="admin-add-form"><input type="text" id="add-jp-input" placeholder="輸入要新增的頻道 ID..."><button class="admin-btn admin-btn-add" data-action="add" data-list-type="jp" data-input-id="add-jp-input">手動新增</button></div>
