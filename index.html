@@ -702,9 +702,13 @@
             <div class="modal-content admin-modal-content">
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <h3 class="text-2xl font-bold text-indigo-400">管理員後台</h3>
-                    <button id="close-admin-modal-btn" class="p-2 rounded-full hover:bg-gray-600 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+                    <div class="flex gap-2">
+                         <button class="admin-btn-refresh bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors" data-lang="cn">立即更新中文資料</button>
+                         <button class="admin-btn-refresh bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition-colors" data-lang="jp">立即更新日文資料</button>
+                        <button id="close-admin-modal-btn" class="p-2 rounded-full hover:bg-gray-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="admin-tabs overflow-x-auto">
                     <button class="admin-tab-btn active whitespace-nowrap" data-tab="pending_jp">待審核日文 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300">${listsData.pending_jp?.length || 0}</span></button>
@@ -766,6 +770,31 @@
                     if (!confirm(`確定要對頻道 ${finalChannelId} 執行「${action}」操作嗎？`)) return;
 
                     await performAdminAction(action, finalChannelId, listType, password);
+                });
+            });
+
+            modal.querySelectorAll('.admin-btn-refresh').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const lang = e.currentTarget.dataset.lang;
+                    const langText = lang === 'cn' ? '中文' : '日文';
+                    if (!confirm(`確定要立即強制更新${langText}資料嗎？這可能需要幾分鐘的時間。`)) return;
+
+                    const originalText = btn.innerText;
+                    btn.innerText = '更新中...';
+                    btn.disabled = true;
+
+                    try {
+                        await fetchApi('youtube', {
+                            params: { force_refresh: 'true', lang: lang, password: password }
+                        });
+                        alert(`${langText}資料更新請求已發送並完成！`);
+                    } catch (error) {
+                        console.error(`更新失敗:`, error);
+                        alert(`更新失敗: ${error.message}`);
+                    } finally {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }
                 });
             });
         }
