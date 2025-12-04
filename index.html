@@ -447,11 +447,125 @@
         }
 
         /* --- END: Admin UI 新增樣式 --- */
+
+        /* --- START: 公告欄樣式 --- */
+        #announcement-banner {
+            display: none;
+            position: relative;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 40;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #announcement-banner.visible {
+            display: flex;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        #announcement-banner.type-info {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);
+            border-bottom-color: rgba(59, 130, 246, 0.3);
+        }
+
+        #announcement-banner.type-warning {
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(180, 83, 9, 0.2) 100%);
+            border-bottom-color: rgba(245, 158, 11, 0.3);
+        }
+
+        #announcement-banner.type-critical {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(153, 27, 27, 0.2) 100%);
+            border-bottom-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .announcement-content {
+            flex-grow: 1;
+            text-align: center;
+            font-weight: 500;
+            color: #f3f4f6;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .announcement-icon {
+            flex-shrink: 0;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .type-info .announcement-icon {
+            color: #60a5fa;
+        }
+
+        .type-warning .announcement-icon {
+            color: #fbbf24;
+        }
+
+        .type-critical .announcement-icon {
+            color: #f87171;
+        }
+
+        #close-announcement-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: color 0.2s, background-color 0.2s;
+            margin-left: 1rem;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            /* Mobile friendly touch target */
+            min-width: 44px;
+        }
+
+        #close-announcement-btn:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- END: 公告欄樣式 --- */
     </style>
 </head>
 
 
 <body class="bg-gray-900 text-white font-sans">
+
+    <!-- 公告欄容器 -->
+    <div id="announcement-banner">
+        <div class="announcement-content">
+            <svg class="announcement-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span id="announcement-text"></span>
+        </div>
+        <button id="close-announcement-btn" aria-label="關閉公告">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
 
     <div id="app"></div>
 
@@ -716,6 +830,7 @@
                     <button class="admin-tab-btn whitespace-nowrap" data-tab="whitelist_cn">中文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300">${listsData.whitelist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
+                    <button class="admin-tab-btn whitespace-nowrap" data-tab="announcement">公告管理</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
                     <div id="tab-pending_jp" class="admin-tab-content active space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
@@ -734,6 +849,44 @@
                     <div id="tab-blacklist_jp" class="admin-tab-content space-y-2">
                          <div class="admin-add-form"><input type="text" id="add-blacklist-jp-input" placeholder="輸入要封鎖的頻道 ID..."><button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700" data-action="add" data-list-type="blacklist_jp" data-input-id="add-blacklist-jp-input">手動封鎖</button></div>
                         ${createListItems(listsData.blacklist_jp, 'blacklist_jp')}
+                    </div>
+                    <div id="tab-announcement" class="admin-tab-content space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-indigo-400 mb-4">發布新公告</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">公告內容</label>
+                                    <textarea id="announcement-content" rows="3" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="輸入公告內容...">${listsData.announcement?.content || ''}</textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">公告類型</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="announcement-type" value="info" ${!listsData.announcement?.type || listsData.announcement?.type === 'info' ? 'checked' : ''} class="text-blue-500 focus:ring-blue-500">
+                                            <span class="text-blue-300">一般 (Info)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="announcement-type" value="warning" ${listsData.announcement?.type === 'warning' ? 'checked' : ''} class="text-yellow-500 focus:ring-yellow-500">
+                                            <span class="text-yellow-300">注意 (Warning)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="announcement-type" value="critical" ${listsData.announcement?.type === 'critical' ? 'checked' : ''} class="text-red-500 focus:ring-red-500">
+                                            <span class="text-red-300">緊急 (Critical)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="announcement-active" class="sr-only peer" ${listsData.announcement?.active === 'true' ? 'checked' : ''}>
+                                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-300">啟用公告</span>
+                                    </label>
+                                </div>
+                                <div class="pt-2">
+                                    <button id="save-announcement-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition-colors">儲存設定</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -797,19 +950,53 @@
                     }
                 });
             });
+
+            // 公告儲存按鈕事件
+            const saveAnnouncementBtn = modal.querySelector('#save-announcement-btn');
+            if (saveAnnouncementBtn) {
+                saveAnnouncementBtn.addEventListener('click', async () => {
+                    const content = modal.querySelector('#announcement-content').value.trim();
+                    const type = modal.querySelector('input[name="announcement-type"]:checked').value;
+                    const active = modal.querySelector('#announcement-active').checked;
+
+                    if (!content && active) {
+                        alert('啟用公告時，內容不能為空！');
+                        return;
+                    }
+
+                    const originalText = saveAnnouncementBtn.innerText;
+                    saveAnnouncementBtn.innerText = '儲存中...';
+                    saveAnnouncementBtn.disabled = true;
+
+                    try {
+                        await performAdminAction('update_announcement', null, null, password, { content, type, active });
+                        alert('公告設定已儲存！');
+                    } catch (error) {
+                        alert(`儲存失敗: ${error.message}`);
+                    } finally {
+                        saveAnnouncementBtn.innerText = originalText;
+                        saveAnnouncementBtn.disabled = false;
+                    }
+                });
+            }
         }
 
-        async function performAdminAction(action, channelId, listType, password) {
+        async function performAdminAction(action, channelId, listType, password, extraData = {}) {
             try {
                 await fetchApi('admin/manage', {
                     method: 'POST',
-                    body: { action, channelId, listType, password }
+                    body: { action, channelId, listType, password, ...extraData }
                 });
-                // 重新載入 UI 以顯示最新狀態
-                await showAdminUI(password);
+
+                // 如果是公告更新，不需要重新載入列表
+                if (action !== 'update_announcement') {
+                    // 重新載入 UI 以顯示最新狀態
+                    await showAdminUI(password);
+                }
             } catch (error) {
                 console.error(`管理操作失敗 (${action}):`, error);
                 alert(`操作失敗: ${error.message}`);
+                throw error; // 重新拋出錯誤以便上層處理
             }
         }
         // --- END: Admin UI 新增函式 ---
@@ -1320,7 +1507,31 @@
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp);
                 state.totalVisits = dataPackage.totalVisits || 0;
+                state.totalVisits = dataPackage.totalVisits || 0;
                 state.todayVisits = dataPackage.todayVisits || 0;
+
+                // --- START: 處理公告顯示 ---
+                const announcement = dataPackage.announcement;
+                const banner = document.getElementById('announcement-banner');
+                const bannerText = document.getElementById('announcement-text');
+                const closeBtn = document.getElementById('close-announcement-btn');
+
+                if (announcement && announcement.active === 'true') {
+                    const dismissedKey = `vspo_announcement_dismissed_${announcement.timestamp}`;
+                    const isDismissed = localStorage.getItem(dismissedKey);
+
+                    if (!isDismissed) {
+                        bannerText.textContent = announcement.content;
+                        banner.className = `type-${announcement.type}`; // 設定類型樣式
+                        banner.classList.add('visible');
+
+                        closeBtn.onclick = () => {
+                            banner.classList.remove('visible');
+                            localStorage.setItem(dismissedKey, 'true');
+                        };
+                    }
+                }
+                // --- END: 處理公告顯示 ---
 
                 const classificationStatus = await fetchApi('check-status');
                 state.needsClassification = !classificationStatus.isDone;
