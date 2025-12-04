@@ -606,7 +606,7 @@
                 title: 'V12.0 自動搜索！',
                 date: '2025-12-04',
                 features: [
-                    '【功能增強】精華現在會由系統自動探索新頻道。',
+                    '【功能增強】現在會由系統自動探索新頻道。',
                 ]
             },
             'V11.1': {
@@ -745,7 +745,7 @@
         }
 
         // --- START: Admin UI 新增函式 ---
-        async function showAdminUI(password) {
+        async function showAdminUI(password, activeTab = 'pending_jp') {
             const modalId = 'admin-ui-modal';
             let modalOverlay = document.getElementById(modalId);
             if (!modalOverlay) {
@@ -773,7 +773,7 @@
 
             try {
                 const listsData = await fetchApi('admin/lists', { params: { password } });
-                modalOverlay.innerHTML = createAdminModalHTML(listsData, password);
+                modalOverlay.innerHTML = createAdminModalHTML(listsData, password, activeTab);
                 setupAdminModalEventListeners(password);
             } catch (error) {
                 console.error('載入管理列表失敗:', error);
@@ -786,7 +786,7 @@
             }
         }
 
-        function createAdminModalHTML(listsData, password) {
+        function createAdminModalHTML(listsData, password, activeTab = 'pending_jp') {
             const createListItems = (list, type) => {
                 if (!list || list.length === 0) {
                     return '<p class="text-gray-500 text-center py-8">這個列表是空的。</p>';
@@ -825,32 +825,32 @@
                     </div>
                 </div>
                 <div class="admin-tabs overflow-x-auto">
-                    <button class="admin-tab-btn active whitespace-nowrap" data-tab="pending_jp">待審核日文 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300">${listsData.pending_jp?.length || 0}</span></button>
-                    <button class="admin-tab-btn whitespace-nowrap" data-tab="whitelist_jp">日文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-300">${listsData.whitelist_jp?.length || 0}</span></button>
-                    <button class="admin-tab-btn whitespace-nowrap" data-tab="whitelist_cn">中文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300">${listsData.whitelist_cn?.length || 0}</span></button>
-                    <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
-                    <button class="admin-tab-btn whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
-                    <button class="admin-tab-btn whitespace-nowrap" data-tab="announcement">公告管理</button>
+                    <button class="admin-tab-btn ${activeTab === 'pending_jp' ? 'active' : ''} whitespace-nowrap" data-tab="pending_jp">待審核日文 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300">${listsData.pending_jp?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'whitelist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="whitelist_jp">日文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-300">${listsData.whitelist_jp?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'whitelist_cn' ? 'active' : ''} whitespace-nowrap" data-tab="whitelist_cn">中文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300">${listsData.whitelist_cn?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'blacklist_cn' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'blacklist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
-                    <div id="tab-pending_jp" class="admin-tab-content active space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
-                    <div id="tab-whitelist_jp" class="admin-tab-content space-y-2">
+                    <div id="tab-pending_jp" class="admin-tab-content ${activeTab === 'pending_jp' ? 'active' : ''} space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
+                    <div id="tab-whitelist_jp" class="admin-tab-content ${activeTab === 'whitelist_jp' ? 'active' : ''} space-y-2">
                         <div class="admin-add-form"><input type="text" id="add-jp-input" placeholder="輸入要新增的頻道 ID..."><button class="admin-btn admin-btn-add" data-action="add" data-list-type="jp" data-input-id="add-jp-input">手動新增</button></div>
                         ${createListItems(listsData.whitelist_jp, 'whitelist_jp')}
                     </div>
-                    <div id="tab-whitelist_cn" class="admin-tab-content space-y-2">
+                    <div id="tab-whitelist_cn" class="admin-tab-content ${activeTab === 'whitelist_cn' ? 'active' : ''} space-y-2">
                         <div class="admin-add-form"><input type="text" id="add-cn-input" placeholder="輸入要新增的頻道 ID..."><button class="admin-btn admin-btn-add" data-action="add" data-list-type="cn" data-input-id="add-cn-input">手動新增</button></div>
                         ${createListItems(listsData.whitelist_cn, 'whitelist_cn')}
                     </div>
-                    <div id="tab-blacklist_cn" class="admin-tab-content space-y-2">
+                    <div id="tab-blacklist_cn" class="admin-tab-content ${activeTab === 'blacklist_cn' ? 'active' : ''} space-y-2">
                          <div class="admin-add-form"><input type="text" id="add-blacklist-cn-input" placeholder="輸入要封鎖的頻道 ID..."><button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700" data-action="add" data-list-type="blacklist_cn" data-input-id="add-blacklist-cn-input">手動封鎖</button></div>
                         ${createListItems(listsData.blacklist_cn, 'blacklist_cn')}
                     </div>
-                    <div id="tab-blacklist_jp" class="admin-tab-content space-y-2">
+                    <div id="tab-blacklist_jp" class="admin-tab-content ${activeTab === 'blacklist_jp' ? 'active' : ''} space-y-2">
                          <div class="admin-add-form"><input type="text" id="add-blacklist-jp-input" placeholder="輸入要封鎖的頻道 ID..."><button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700" data-action="add" data-list-type="blacklist_jp" data-input-id="add-blacklist-jp-input">手動封鎖</button></div>
                         ${createListItems(listsData.blacklist_jp, 'blacklist_jp')}
                     </div>
-                    <div id="tab-announcement" class="admin-tab-content space-y-4">
+                    <div id="tab-announcement" class="admin-tab-content ${activeTab === 'announcement' ? 'active' : ''} space-y-4">
                         <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
                             <h4 class="text-lg font-semibold text-indigo-400 mb-4">發布新公告</h4>
                             <div class="space-y-4">
@@ -983,6 +983,10 @@
 
         async function performAdminAction(action, channelId, listType, password, extraData = {}) {
             try {
+                // 1. 在操作前先獲取當前活躍的 Tab
+                const activeTabBtn = document.querySelector('.admin-tab-btn.active');
+                const currentTab = activeTabBtn ? activeTabBtn.dataset.tab : 'pending_jp';
+
                 await fetchApi('admin/manage', {
                     method: 'POST',
                     body: { action, channelId, listType, password, ...extraData }
@@ -990,8 +994,8 @@
 
                 // 如果是公告更新，不需要重新載入列表
                 if (action !== 'update_announcement') {
-                    // 重新載入 UI 以顯示最新狀態
-                    await showAdminUI(password);
+                    // 2. 重新載入 UI，並傳入 currentTab 以保持分頁狀態
+                    await showAdminUI(password, currentTab);
                 }
             } catch (error) {
                 console.error(`管理操作失敗 (${action}):`, error);
