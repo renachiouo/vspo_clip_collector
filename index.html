@@ -832,6 +832,7 @@
                     <button class="admin-tab-btn ${activeTab === 'whitelist_cn' ? 'active' : ''} whitespace-nowrap" data-tab="whitelist_cn">中文白名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300">${listsData.whitelist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'blacklist_cn' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'blacklist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
@@ -851,6 +852,46 @@
                     <div id="tab-blacklist_jp" class="admin-tab-content ${activeTab === 'blacklist_jp' ? 'active' : ''} space-y-2">
                          <div class="admin-add-form"><input type="text" id="add-blacklist-jp-input" placeholder="輸入要封鎖的頻道 ID..."><button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700" data-action="add" data-list-type="blacklist_jp" data-input-id="add-blacklist-jp-input">手動封鎖</button></div>
                         ${createListItems(listsData.blacklist_jp, 'blacklist_jp')}
+                    </div>
+                    <div id="tab-backfill" class="admin-tab-content ${activeTab === 'backfill' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-indigo-400 mb-4">歷史資料回填</h4>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-1">開始日期</label>
+                                        <input type="date" id="backfill-start-date" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-1">結束日期</label>
+                                        <input type="date" id="backfill-end-date" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">目標語言</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="backfill-lang" value="cn" checked class="text-indigo-500 focus:ring-indigo-500">
+                                            <span class="text-gray-300">中文 (VSPO中文, VSPO精華...)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="backfill-lang" value="jp" class="text-indigo-500 focus:ring-indigo-500">
+                                            <span class="text-gray-300">日文 (ぶいすぽ 切り抜き...)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">關鍵字 (可複選，請謹慎選擇以節省 Quota)</label>
+                                    <div id="backfill-keywords-container" class="grid grid-cols-2 gap-2 bg-gray-700 p-2 rounded border border-gray-600">
+                                        <!-- JS will populate this -->
+                                    </div>
+                                </div>
+                                <div class="pt-2">
+                                    <button id="start-backfill-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors">開始回填任務</button>
+                                </div>
+                                <div id="backfill-log" class="mt-4 p-2 bg-black rounded text-xs font-mono text-green-400 h-32 overflow-y-auto hidden"></div>
+                            </div>
+                        </div>
                     </div>
                     <div id="tab-announcement" class="admin-tab-content ${activeTab === 'announcement' ? 'active' : ''} space-y-4">
                         <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
@@ -979,6 +1020,84 @@
                         saveAnnouncementBtn.innerText = originalText;
                         saveAnnouncementBtn.disabled = false;
                     }
+                });
+            }
+
+            // 回填功能邏輯
+            const backfillTabBtn = modal.querySelector('.admin-tab-btn[data-tab="backfill"]');
+            if (backfillTabBtn) {
+                const keywordsContainer = modal.querySelector('#backfill-keywords-container');
+                const cnKeywords = ["VSPO中文", "VSPO中文精華", "VSPO精華", "VSPO中文剪輯", "VSPO剪輯", "ぶいすぽっ！許諾番号"];
+                const jpKeywords = ["ぶいすぽ 切り抜き", "ぶいすぽっ！許諾番号"];
+
+                const updateKeywords = () => {
+                    const lang = modal.querySelector('input[name="backfill-lang"]:checked').value;
+                    const keywords = lang === 'cn' ? cnKeywords : jpKeywords;
+                    keywordsContainer.innerHTML = keywords.map(k => `
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" value="${k}" checked class="text-indigo-500 focus:ring-indigo-500">
+                            <span class="text-gray-300 text-sm">${k}</span>
+                        </label>
+                    `).join('');
+                };
+
+                modal.querySelectorAll('input[name="backfill-lang"]').forEach(radio => {
+                    radio.addEventListener('change', updateKeywords);
+                });
+                updateKeywords(); // Initialize
+
+                const startBackfillBtn = modal.querySelector('#start-backfill-btn');
+                const logDiv = modal.querySelector('#backfill-log');
+
+                startBackfillBtn.addEventListener('click', async () => {
+                    const startDateStr = modal.querySelector('#backfill-start-date').value;
+                    const endDateStr = modal.querySelector('#backfill-end-date').value;
+                    const lang = modal.querySelector('input[name="backfill-lang"]:checked').value;
+                    const selectedKeywords = Array.from(modal.querySelectorAll('#backfill-keywords-container input:checked')).map(cb => cb.value);
+
+                    if (!startDateStr || !endDateStr) { alert('請選擇開始與結束日期'); return; }
+                    if (selectedKeywords.length === 0) { alert('請至少選擇一個關鍵字'); return; }
+
+                    const startDate = new Date(startDateStr);
+                    const endDate = new Date(endDateStr);
+                    if (startDate > endDate) { alert('開始日期不能晚於結束日期'); return; }
+
+                    if (!confirm(`確定要開始回填嗎？\n日期: ${startDateStr} ~ ${endDateStr}\n語言: ${lang}\n關鍵字: ${selectedKeywords.join(', ')}\n\n這將會消耗大量 YouTube API Quota，請確認！`)) return;
+
+                    startBackfillBtn.disabled = true;
+                    startBackfillBtn.innerText = '回填進行中...';
+                    logDiv.classList.remove('hidden');
+                    logDiv.innerHTML = '--- 任務開始 ---\n';
+
+                    const log = (msg) => {
+                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+                        logDiv.scrollTop = logDiv.scrollHeight;
+                    };
+
+                    let currentDate = new Date(startDate);
+                    while (currentDate <= endDate) {
+                        const dateStr = currentDate.toISOString().split('T')[0];
+                        log(`正在處理: ${dateStr}...`);
+
+                        try {
+                            const res = await fetchApi('admin/manage', {
+                                method: 'POST',
+                                body: { action: 'backfill', date: dateStr, lang, keywords: selectedKeywords, password }
+                            });
+                            log(`完成: ${dateStr} - 新增/更新 ${res.count} 部影片`);
+                        } catch (err) {
+                            log(`錯誤: ${dateStr} - ${err.message}`);
+                        }
+
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        // 簡單的延遲以避免過於密集的請求 (雖然是序列執行)
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+
+                    log('--- 任務結束 ---');
+                    startBackfillBtn.disabled = false;
+                    startBackfillBtn.innerText = '開始回填任務';
+                    alert('回填任務已完成，請查看日誌確認結果。');
                 });
             }
         }
