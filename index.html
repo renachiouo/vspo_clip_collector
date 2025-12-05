@@ -1200,6 +1200,7 @@
                     <button class="admin-tab-btn ${activeTab === 'blacklist_cn' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_cn">中文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_cn?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'blacklist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
+                    <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
@@ -1257,6 +1258,18 @@
                                     <button id="start-backfill-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors">開始回填任務</button>
                                 </div>
                                 <div id="backfill-log" class="mt-4 p-2 bg-black rounded text-xs font-mono text-green-400 h-32 overflow-y-auto hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tab-video_blacklist" class="admin-tab-content ${activeTab === 'video_blacklist' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-indigo-400 mb-4">影片黑名單管理</h4>
+                            <div class="admin-add-form mb-4">
+                                <input type="text" id="add-video-blacklist-input" placeholder="輸入要封鎖的影片 ID..." class="flex-grow bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold" id="btn-add-video-blacklist">新增封鎖</button>
+                            </div>
+                            <div id="video-blacklist-container" class="space-y-2">
+                                <p class="text-gray-500 text-center py-4">載入中...</p>
                             </div>
                         </div>
                     </div>
@@ -1386,6 +1399,84 @@
                     } finally {
                         saveAnnouncementBtn.innerText = originalText;
                         saveAnnouncementBtn.disabled = false;
+                    }
+                });
+            }
+
+            // 影片黑名單邏輯
+            const videoBlacklistTabBtn = modal.querySelector('.admin-tab-btn[data-tab="video_blacklist"]');
+            if (videoBlacklistTabBtn) {
+                const container = modal.querySelector('#video-blacklist-container');
+                const addBtn = modal.querySelector('#btn-add-video-blacklist');
+                const input = modal.querySelector('#add-video-blacklist-input');
+
+                const loadVideoBlacklist = async () => {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">載入中...</p>';
+                    try {
+                        const res = await fetchApi('admin/manage', {
+                            method: 'POST',
+                            body: { action: 'get_video_blacklist', password }
+                        });
+                        if (res.blacklist && res.blacklist.length > 0) {
+                            container.innerHTML = res.blacklist.map(id => `
+                                <div class="flex items-center justify-between bg-gray-700 p-2 rounded">
+                                    <div class="flex items-center gap-2 overflow-hidden">
+                                        <span class="text-gray-300 font-mono text-sm truncate">${id}</span>
+                                        <a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs">Open</a>
+                                    </div>
+                                    <button class="text-red-400 hover:text-red-300 text-sm font-semibold px-2 btn-remove-video-blacklist" data-id="${id}">移除</button>
+                                </div>
+                            `).join('');
+
+                            container.querySelectorAll('.btn-remove-video-blacklist').forEach(btn => {
+                                btn.addEventListener('click', async (e) => {
+                                    const videoId = e.currentTarget.dataset.id;
+                                    if (!confirm(`確定要將影片 ${videoId} 從黑名單移除嗎？`)) return;
+                                    try {
+                                        await fetchApi('admin/manage', {
+                                            method: 'POST',
+                                            body: { action: 'remove_video_blacklist', videoId, password }
+                                        });
+                                        loadVideoBlacklist();
+                                    } catch (err) {
+                                        alert(`移除失敗: ${err.message}`);
+                                    }
+                                });
+                            });
+                        } else {
+                            container.innerHTML = '<p class="text-gray-500 text-center py-4">目前沒有黑名單影片。</p>';
+                        }
+                    } catch (error) {
+                        container.innerHTML = `<p class="text-red-500 text-center py-4">載入失敗: ${error.message}</p>`;
+                    }
+                };
+
+                // Initial load if tab is active, or when tab is clicked
+                if (videoBlacklistTabBtn.classList.contains('active')) loadVideoBlacklist();
+                videoBlacklistTabBtn.addEventListener('click', loadVideoBlacklist);
+
+                addBtn.addEventListener('click', async () => {
+                    const videoId = input.value.trim();
+                    if (!videoId) { alert('請輸入影片 ID'); return; }
+                    if (!confirm(`確定要將影片 ${videoId} 加入黑名單嗎？\n這將會從資料庫中移除此影片。`)) return;
+
+                    const originalText = addBtn.innerText;
+                    addBtn.innerText = '處理中...';
+                    addBtn.disabled = true;
+
+                    try {
+                        await fetchApi('admin/manage', {
+                            method: 'POST',
+                            body: { action: 'add_video_blacklist', videoId, password }
+                        });
+                        input.value = '';
+                        alert('已加入黑名單');
+                        loadVideoBlacklist();
+                    } catch (error) {
+                        alert(`加入失敗: ${error.message}`);
+                    } finally {
+                        addBtn.innerText = originalText;
+                        addBtn.disabled = false;
                     }
                 });
             }
