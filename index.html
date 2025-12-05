@@ -299,9 +299,36 @@
 
         .admin-tabs {
             display: flex;
-            border-bottom: 2px solid #4b5563;
-            flex-shrink: 0;
+            gap: 1rem;
+            border-bottom: 1px solid #374151;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            overflow-x: auto;
+            /* 允許水平滾動 */
         }
+
+        .admin-tabs::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .admin-tabs::-webkit-scrollbar-track {
+            background: #1f2937;
+            /* gray-800 */
+            border-radius: 4px;
+        }
+
+        .admin-tabs::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            /* gray-600 */
+            border-radius: 4px;
+        }
+
+        .admin-tabs::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+            /* gray-500 */
+        }
+
+
 
         .admin-tab-btn {
             padding: 0.75rem 1.25rem;
