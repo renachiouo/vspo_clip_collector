@@ -304,7 +304,10 @@
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             overflow-x: auto;
-            /* 允許水平滾動 */
+            overflow-y: hidden;
+            /* 禁止垂直滾動 */
+            flex-shrink: 0;
+            /* 防止被壓縮 */
         }
 
         .admin-tabs::-webkit-scrollbar {
