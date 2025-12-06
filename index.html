@@ -930,7 +930,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V12.1';
+        const CURRENT_APP_VERSION = 'V12.1.1';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -961,6 +961,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V12.1.1': {
+                title: 'V12.1.1 UI優化',
+                date: '2025-12-07',
+                features: [
+                    '修復了公告或更新日誌過長時無法捲動的問題。',
+                ]
+            },
             'V12.1': {
                 title: 'V12.1 爆肝排行榜！',
                 date: '2025-12-05',
@@ -1057,7 +1064,7 @@
                     allFeaturesHTML += `${index > 0 ? '<hr class="border-gray-600 my-4">' : ''}<div class="text-center mb-4"><h4 class="text-xl font-bold text-green-400">${log.title}</h4><p class="text-xs text-gray-500">發布日期: ${log.date}</p></div><ul class="space-y-3 text-gray-300">${featuresHTML}</ul>`;
                 });
             }
-            modalOverlay.innerHTML = `<div class="modal-content">${allFeaturesHTML}<button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors">我了解了</button></div>`;
+            modalOverlay.innerHTML = `<div class="modal-content" style="max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;"><div>${allFeaturesHTML}</div><button id="close-version-modal-btn" class="mt-8 block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors flex-shrink-0">我了解了</button></div>`;
             document.body.appendChild(modalOverlay);
             setTimeout(() => modalOverlay.classList.add('visible'), 10);
             const closeModal = () => { modalOverlay.classList.remove('visible'); localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION); setTimeout(() => modalOverlay.remove(), 300); };
