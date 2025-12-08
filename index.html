@@ -1696,6 +1696,23 @@
             return `<div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center"><strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p></div>`;
         }
 
+
+        const formatDuration = (duration) => {
+            if (!duration) return '';
+            const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+            if (!match) return '';
+            const hours = (match[1] || '').replace('H', '');
+            const minutes = (match[2] || '').replace('M', '') || '0';
+            const seconds = (match[3] || '').replace('S', '') || '0';
+
+            const paddedSec = seconds.padStart(2, '0');
+            if (hours) {
+                const paddedMin = minutes.padStart(2, '0');
+                return `${hours}:${paddedMin}:${paddedSec}`;
+            }
+            return `${minutes}:${paddedSec}`;
+        };
+
         function createVideoCard(video, showChannel = true) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
@@ -1704,21 +1721,7 @@
                 for (let unit in intervals) { if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`; }
                 return "剛剛";
             };
-            const formatDuration = (duration) => {
-                if (!duration) return '';
-                const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-                if (!match) return '';
-                const hours = (match[1] || '').replace('H', '');
-                const minutes = (match[2] || '').replace('M', '') || '0';
-                const seconds = (match[3] || '').replace('S', '') || '0';
 
-                const paddedSec = seconds.padStart(2, '0');
-                if (hours) {
-                    const paddedMin = minutes.padStart(2, '0');
-                    return `${hours}:${paddedMin}:${paddedSec}`;
-                }
-                return `${minutes}:${paddedSec}`;
-            };
             const card = document.createElement('div');
             card.className = "video-card group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
 
@@ -1827,7 +1830,7 @@
                 relatedClipsButton = `<button class="related-clips-btn p-2 rounded-full bg-teal-500/20 hover:bg-teal-500/40 transition-colors" title="查看同場直播所有剪輯"><span class="text-lg">🎬</span></button>`;
             }
 
-            card.innerHTML = `<div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div><div class="relative z-10 flex flex-col h-full"><div class="p-4"><div class="flex items-center space-x-3"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0"><img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20"></a><div class="flex-1 min-w-0"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer"><p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p></a><p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p></div><button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" /></svg></button></div></div><div class="px-4 text-sm text-gray-400">最新影片:</div><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2"><img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';"></a><div class="p-4 flex flex-col flex-grow mt-auto"><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow"><h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3></a><div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50"><span>${formatNumber(video.viewCount)} 次觀看</span><div class="flex items-center gap-x-2">${relatedClipsButton}<span>${timeAgo(video.publishedAt)}</span></div></div></div></div>`;
+            card.innerHTML = `<div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div><div class="relative z-10 flex flex-col h-full"><div class="p-4"><div class="flex items-center space-x-3"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0"><img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20"></a><div class="flex-1 min-w-0"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer"><p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p></a><p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p></div><button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" /></svg></button></div></div><div class="px-4 text-sm text-gray-400">最新影片:</div><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2 relative"><img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';"></a>${video.duration ? `<div class="duration-line-container"><div class="duration-line-accent"></div><span class="duration-text-c">${formatDuration(video.duration)}</span></div>` : ''}<div class="p-4 flex flex-col flex-grow mt-auto"><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow"><h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3></a><div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50"><span>${formatNumber(video.viewCount)} 次觀看</span><div class="flex items-center gap-x-2">${relatedClipsButton}<span>${timeAgo(video.publishedAt)}</span></div></div></div></div>`;
 
             if (video.originalStreamInfo) {
                 card.querySelector('.related-clips-btn').addEventListener('click', (e) => {
