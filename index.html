@@ -826,6 +826,48 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+
+        .duration-line-container {
+            position: relative;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            width: 100%;
+            margin-top: -2px;
+            /* Pull up to touch image */
+            z-index: 10;
+        }
+
+        .duration-line-accent {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, #06b6d4);
+            opacity: 0.8;
+            box-shadow: 0 0 4px rgba(6, 182, 212, 0.4);
+        }
+
+        .duration-text-c {
+            position: absolute;
+            right: 0;
+            bottom: 2px;
+            padding: 0 4px;
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: monospace;
+            /* Strong black contour + Cyan glow */
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                0 0 4px rgba(6, 182, 212, 0.8);
+            line-height: 1;
+            pointer-events: none;
+        }
+
         /* --- END: 公告欄樣式 --- */
     </style>
 </head>
@@ -930,7 +972,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V13.0';
+        const CURRENT_APP_VERSION = 'V12.3';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -962,11 +1004,11 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
-            'V13.0': {
-                title: 'V13.0 非同步精準過濾',
+            'V12.3': {
+                title: 'V12.3 時長顯示',
                 date: '2025-12-08',
                 features: [
-                    '【系統升級】引入非同步篩選分析，徹底解決過濾精準度問題。',
+                    '新增顯示影片時長',
                 ]
             },
             'V12.2': {
@@ -1016,49 +1058,8 @@
         };
 
         // VSPO 成員資料 (與您原先相同)
-        // VSPO 成員資料 (Updated for Precise Filtering)
-        // [User Requirement] Please populate 'channelIds' with YouTube Channel ID and Twitch User ID for each member.
-        const vspoJPMembers = [
-            { "name_jp": "花芽すみれ", "filter_keyword": "花芽すみれ", "color": "#b0c4de", "channelIds": ["UCyLGcqYs7RsBb3L0SJfzGYA", "695556933"] },
-            { "name_jp": "花芽なずな", "filter_keyword": "花芽なずな", "color": "#fabedc", "channelIds": ["UCiMG6VdScBabPhJ1ZtaVmbw", "790167759"] },
-            { "name_jp": "小雀とと", "filter_keyword": "小雀とと", "color": "#f5eb4a", "channelIds": ["UCgTzsBI0DIRopMylJEDqnog"] },
-            { "name_jp": "一ノ瀬うるは", "filter_keyword": "一ノ瀬うるは", "color": "#4182fa", "channelIds": ["UC5LyYg6cCA4yHEYvtUsir3g", "582689327"] },
-            { "name_jp": "胡桃のあ", "filter_keyword": "胡桃のあ", "color": "#ffdbfe", "channelIds": ["UCIcAj6WkJ8vZ7DeJVgmeqKw", "600770697"] },
-            { "name_jp": "兎咲ミミ", "filter_keyword": "兎咲ミミ", "color": "#c7b2d6", "channelIds": ["UCnvVG9RbOW3J6Ifqo-zKLiw"] },
-            { "name_jp": "空澄セナ", "filter_keyword": "空澄セナ", "color": "#ffffff", "channelIds": ["UCF_U2GCKHvDz52jWdizppIA", "776751504"] },
-            { "name_jp": "橘ひなの", "filter_keyword": "橘ひなの", "color": "#fa96c8", "channelIds": ["UCvUc0m317LWTTPZoBQV479A", "568682215"] },
-            { "name_jp": "英リサ", "filter_keyword": "英リサ", "color": "#d1de79", "channelIds": ["UCurEA8YoqFwimJcAuSHU0MQ", "777700650"] },
-            { "name_jp": "如月れん", "filter_keyword": "如月れん", "color": "#be2152", "channelIds": ["UCGWa1dMU_sDCaRQjdabsVgg", "722162135"] },
-            { "name_jp": "神成きゅぴ", "filter_keyword": "神成きゅぴ", "color": "#ffd23c", "channelIds": ["UCMp55EbT_ZlqiMS3lCj01BQ", "550676410"] },
-            { "name_jp": "八雲べに", "filter_keyword": "八雲べに", "color": "#85cab3", "channelIds": ["UCjXBuHmWkieBApgBhDuJMMQ", "700465409"] },
-            { "name_jp": "藍沢エマ", "filter_keyword": "藍沢エマ", "color": "#b4f1f9", "channelIds": ["UCPkKpOHxEDcwmUAnRpIu-Ng", "UC6YoF5-OmChAXHNff3ifR6Q", "848822715"] },
-            { "name_jp": "紫宮るな", "filter_keyword": "紫宮るな", "color": "#d6adff", "channelIds": ["UCD5W21JqNMv_tV9nfjvF9sw", "773185713"] },
-            { "name_jp": "猫汰つな", "filter_keyword": "猫汰つな", "color": "#ff3652", "channelIds": ["UCIjdfjcSaEgdjwbgjxC3ZWg", "858359105"] },
-            { "name_jp": "白波らむね", "filter_keyword": "白波らむね", "color": "#8eced9", "channelIds": ["UC61OwuYOVuKkpKnid-43Twg", "UClM3dqWX2eH7vBpBL4XP6BQ", "858359149"] },
-            { "name_jp": "小森めと", "filter_keyword": "小森めと", "color": "#fba03f", "channelIds": ["UCzUNASdzI4PV5SlqtYwAkKQ", "801682194"] },
-            { "name_jp": "夢野あかり", "filter_keyword": "夢野あかり", "color": "#ff998d", "channelIds": ["UCS5l_Y0oMVTjEos2LuyeSZQ", "584184005"] },
-            { "name_jp": "夜乃くろむ", "filter_keyword": "夜乃くろむ", "color": "#909ec8", "channelIds": ["UCX4WL24YEOUYd7qDsFSLDOw", "1250148772"] },
-            { "name_jp": "紡木こかげ", "filter_keyword": "紡木こかげ", "color": "#5195e1", "channelIds": ["UC-WX1CXssCtCtc2TNIRnJzg", "1184405770"] },
-            { "name_jp": "千燈ゆうひ", "filter_keyword": "千燈ゆうひ", "color": "#ed784a", "channelIds": ["UCuDY3ibSP2MFRgf7eo3cojg", "UCNfxcLBvnwT9nCDy7OR-i_Q", "1097252496"] },
-            { "name_jp": "蝶屋はなび", "filter_keyword": "蝶屋はなび", "color": "#ea5506", "channelIds": ["UCL9hJsdk9eQa0IlWbFB2oRg", "1361841459"] },
-            { "name_jp": "甘結もか", "filter_keyword": "甘結もか", "color": "#eca0aa", "channelIds": ["UC8vKBjGY2HVfbW9GAmgikWw"] }
-        ];
-        const otherMemberGroups = {
-            "VSPO! EN": [
-                { "name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true, "channelIds": ["UCCra1t-eIlO3ULyXQQMD9Xw", "1102206195"] },
-                { "name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true, "channelIds": ["UCLlJpxXt6L5d-XQ0cDdIyDQ", "1102211983"] },
-                { "name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true, "channelIds": ["UCeCWj-SiJG9SWN6wGORiLmw", "1102212264"] },
-                { "name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true, "channelIds": ["UCKSpM183c85d5V2cW5qaUjA", "1125214436"] },
-                { "name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true, "channelIds": ["UC7Xglp1fske9zmRe7Oj8YyA", "1125216387"] },
-                { "name_jp": "Eris Suzukami", "filter_keyword": "Eris", "color": "#E9F3FD", "channelIds": ["UCp_3ej2br9l9L1DSoHVDZGw"] }
-            ],
-            "VSPO! CN": [
-                { "name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true },
-                { "name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true },
-                { "name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true },
-                { "name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true }
-            ]
-        };
+        const vspoJPMembers = [{ "name_jp": "花芽すみれ", "filter_keyword": "花芽すみれ", "color": "#b0c4de" }, { "name_jp": "花芽なずな", "filter_keyword": "花芽なずな", "color": "#fabedc" }, { "name_jp": "小雀とと", "filter_keyword": "小雀とと", "color": "#f5eb4a" }, { "name_jp": "一ノ瀬うるは", "filter_keyword": "一ノ瀬うるは", "color": "#4182fa" }, { "name_jp": "胡桃のあ", "filter_keyword": "胡桃のあ", "color": "#ffdbfe" }, { "name_jp": "兎咲ミミ", "filter_keyword": "兎咲ミミ", "color": "#c7b2d6" }, { "name_jp": "空澄セナ", "filter_keyword": "空澄セナ", "color": "#ffffff" }, { "name_jp": "橘ひなの", "filter_keyword": "橘ひなの", "color": "#fa96c8" }, { "name_jp": "英リサ", "filter_keyword": "英リサ", "color": "#d1de79" }, { "name_jp": "如月れん", "filter_keyword": "如月れん", "color": "#be2152" }, { "name_jp": "神成きゅぴ", "filter_keyword": "神成きゅぴ", "color": "#ffd23c" }, { "name_jp": "八雲べに", "filter_keyword": "八雲べに", "color": "#85cab3" }, { "name_jp": "藍沢エマ", "filter_keyword": "藍沢エマ", "color": "#b4f1f9" }, { "name_jp": "紫宮るな", "filter_keyword": "紫宮るな", "color": "#d6adff" }, { "name_jp": "猫汰つな", "filter_keyword": "猫汰つな", "color": "#ff3652" }, { "name_jp": "白波らむね", "filter_keyword": "白波らむね", "color": "#8eced9" }, { "name_jp": "小森めと", "filter_keyword": "小森めと", "color": "#fba03f" }, { "name_jp": "夢野あかり", "filter_keyword": "夢野あかり", "color": "#ff998d" }, { "name_jp": "夜乃くろむ", "filter_keyword": "夜乃くろむ", "color": "#909ec8" }, { "name_jp": "紡木こかげ", "filter_keyword": "紡木こかげ", "color": "#5195e1" }, { "name_jp": "千燈ゆうひ", "filter_keyword": "千燈ゆうひ", "color": "#ed784a" }, { "name_jp": "蝶屋はなび", "filter_keyword": "蝶屋はなび", "color": "#ea5506" }, { "name_jp": "甘結もか", "filter_keyword": "甘結もか", "color": "#eca0aa" }];
+        const otherMemberGroups = { "VSPO! EN": [{ "name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true }, { "name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true }, { "name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true }, { "name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true }, { "name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true }, { "name_jp": "Eris Suzukami", "filter_keyword": "Eris", "color": "#E9F3FD" }], "VSPO! CN": [{ "name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true }, { "name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true }, { "name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true }, { "name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true }] };
         const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
 
         // --- 黑名單 & Modal 相關函式 (與之前相同) ---
@@ -1258,7 +1259,6 @@
                     <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
-                    <button class="admin-tab-btn ${activeTab === 'attribution' ? 'active' : ''} whitespace-nowrap" data-tab="attribution">非同步歸屬</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
                     <div id="tab-pending_jp" class="admin-tab-content ${activeTab === 'pending_jp' ? 'active' : ''} space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
@@ -1366,26 +1366,6 @@
                                     <button id="save-announcement-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition-colors">儲存設定</button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div id="tab-attribution" class="admin-tab-content ${activeTab === 'attribution' ? 'active' : ''} space-y-4">
-                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                            <h4 class="text-lg font-semibold text-indigo-400 mb-4">非同步歸屬補全 (Async Attribution)</h4>
-                            <p class="text-gray-400 mb-4 text-sm">
-                                此功能會觸發後端 Worker，處理佇列中等待歸屬分析的影片。<br>
-                                通常由系統排程自動執行，您也可以在此手動觸發以立即處理。
-                            </p>
-                            <div class="flex gap-4">
-                                <button id="trigger-enrichment-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition shadow-md flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                    立即觸發歸屬補全 Worker
-                                </button>
-                                <button id="backfill-queue-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded transition shadow-md flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                    掃描並排程舊影片 (Backfill Queue)
-                                </button>
-                            </div>
-                            <div id="enrichment-log" class="mt-4 p-3 bg-gray-900 rounded text-xs font-mono text-gray-300 h-40 overflow-y-auto hidden"></div>
                         </div>
                     </div>
                 </div>
@@ -1558,91 +1538,6 @@
                 });
             }
 
-            // 非同步歸屬觸發邏輯
-            const attributionTabBtn = modal.querySelector('.admin-tab-btn[data-tab="attribution"]');
-            if (attributionTabBtn) {
-                const triggerBtn = modal.querySelector('#trigger-enrichment-btn');
-                const logDiv = modal.querySelector('#enrichment-log');
-
-                triggerBtn.addEventListener('click', async () => {
-                    if (!confirm('確定要手動觸發歸屬補全 Worker 嗎？')) return;
-
-                    triggerBtn.disabled = true;
-                    triggerBtn.innerHTML = '<span class="animate-spin">↻</span> 請求發送中...';
-                    logDiv.classList.remove('hidden');
-                    logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 發送觸發請求...\n`;
-
-                    try {
-                        // Note: verify if enrich-attribution.js handles POST or GET properly. 
-                        // Based on current implementation, it might expect a POST but doesn't strictly check method for all logic, 
-                        // but standard is usually GET or POST. Let's use POST.
-                        // Looking at enrich-attribution.js, it checks specific paths but method check is inside logic?
-                        // Actually, enrich-attribution.js main handler doesn't strictly enforce method at top level, 
-                        // but let's assume POST is safer for actions.
-                        const res = await fetch(`${API_BASE_URL}/enrich-attribution`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${password}` // Important: It requires password
-                            },
-                            body: JSON.stringify({ password }) // redundancy for safety
-                        });
-
-                        const data = await res.json();
-
-                        if (res.ok) {
-                            logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 成功: ${data.message || 'Worker 已觸發'}\n`;
-                            if (data.processedCount !== undefined) {
-                                logDiv.innerHTML += `[Info] 處理了 ${data.processedCount} 部影片\n`;
-                            }
-                            alert(`觸發成功！\nServer 回應: ${data.message}`);
-                        } else {
-                            throw new Error(data.error || 'Server returned error');
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 錯誤: ${e.message}\n`;
-                        alert(`觸發失敗: ${e.message}`);
-                    } finally {
-                        triggerBtn.disabled = false;
-                        triggerBtn.innerHTML = `
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            立即觸發歸屬補全
-                       `;
-                    }
-                });
-
-                const backfillQueueBtn = modal.querySelector('#backfill-queue-btn');
-                backfillQueueBtn.addEventListener('click', async () => {
-                    if (!confirm('確定要掃描所有舊影片並將「有來源資訊但無歸屬資料」的影片加入佇列嗎？\n這可能需要幾秒鐘的時間。')) return;
-
-                    backfillQueueBtn.disabled = true;
-                    backfillQueueBtn.innerHTML = '<span class="animate-spin">↻</span> 掃描中...';
-                    logDiv.classList.remove('hidden');
-                    logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 開始掃描舊影片...\n`;
-
-                    try {
-                        const res = await fetchApi('admin/manage', {
-                            method: 'POST',
-                            body: { action: 'backfill_attribution_queue', password }
-                        });
-
-                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 掃描完成: ${res.message}\n`;
-                        alert(res.message);
-                    } catch (e) {
-                        console.error(e);
-                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 掃描錯誤: ${e.message}\n`;
-                        alert(`操作失敗: ${e.message}`);
-                    } finally {
-                        backfillQueueBtn.disabled = false;
-                        backfillQueueBtn.innerHTML = `
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                            掃描並排程舊影片 (Backfill Queue)
-                        `;
-                    }
-                });
-            }
-
             // 回填功能邏輯
             const backfillTabBtn = modal.querySelector('.admin-tab-btn[data-tab="backfill"]');
             if (backfillTabBtn) {
@@ -1801,6 +1696,23 @@
             return `<div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center"><strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p></div>`;
         }
 
+
+        const formatDuration = (duration) => {
+            if (!duration) return '';
+            const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+            if (!match) return '';
+            const hours = (match[1] || '').replace('H', '');
+            const minutes = (match[2] || '').replace('M', '') || '0';
+            const seconds = (match[3] || '').replace('S', '') || '0';
+
+            const paddedSec = seconds.padStart(2, '0');
+            if (hours) {
+                const paddedMin = minutes.padStart(2, '0');
+                return `${hours}:${paddedMin}:${paddedSec}`;
+            }
+            return `${minutes}:${paddedSec}`;
+        };
+
         function createVideoCard(video, showChannel = true) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
             const timeAgo = (dateStr) => {
@@ -1809,6 +1721,7 @@
                 for (let unit in intervals) { if (seconds / intervals[unit] > 1) return `${Math.floor(seconds / intervals[unit])} ${unit}前`; }
                 return "剛剛";
             };
+
             const card = document.createElement('div');
             card.className = "video-card group bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/30 transition-shadow duration-300 flex flex-col";
 
@@ -1820,9 +1733,14 @@
             }
 
             card.innerHTML = `
-            <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="video-thumbnail-container block w-full bg-gray-700 overflow-hidden">
+            <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="video-thumbnail-container block w-full bg-gray-700 overflow-hidden relative">
                 <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';">
             </a>
+            ${video.duration ? `
+            <div class="duration-line-container">
+                <div class="duration-line-accent"></div>
+                <span class="duration-text-c">${formatDuration(video.duration)}</span>
+            </div>` : ''}
             <div class="p-4 flex flex-col flex-grow">
                 <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow">
                     <h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3>
@@ -1912,7 +1830,7 @@
                 relatedClipsButton = `<button class="related-clips-btn p-2 rounded-full bg-teal-500/20 hover:bg-teal-500/40 transition-colors" title="查看同場直播所有剪輯"><span class="text-lg">🎬</span></button>`;
             }
 
-            card.innerHTML = `<div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div><div class="relative z-10 flex flex-col h-full"><div class="p-4"><div class="flex items-center space-x-3"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0"><img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20"></a><div class="flex-1 min-w-0"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer"><p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p></a><p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p></div><button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" /></svg></button></div></div><div class="px-4 text-sm text-gray-400">最新影片:</div><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2"><img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';"></a><div class="p-4 flex flex-col flex-grow mt-auto"><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow"><h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3></a><div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50"><span>${formatNumber(video.viewCount)} 次觀看</span><div class="flex items-center gap-x-2">${relatedClipsButton}<span>${timeAgo(video.publishedAt)}</span></div></div></div></div>`;
+            card.innerHTML = `<div class="absolute inset-0 bg-gray-900/70 backdrop-blur"></div><div class="relative z-10 flex flex-col h-full"><div class="p-4"><div class="flex items-center space-x-3"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0"><img src="${channel.avatarUrl}" alt="${channel.name}" class="w-12 h-12 rounded-full bg-gray-700 border-2 border-white/20"></a><div class="flex-1 min-w-0"><a href="https://www.youtube.com/channel/${channel.id}" target="_blank" rel="noopener noreferrer"><p class="text-lg font-bold text-purple-300 truncate">${channel.name}</p></a><p class="text-sm text-gray-300">${formatNumber(channel.subscriberCount)} 位訂閱者</p></div><button class="channel-filter-btn flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" data-channel-id="${channel.id}" data-channel-name="${channel.name}" title="篩選此頻道"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V17a1 1 0 01-1.447.894l-3-2A1 1 0 017 15V12.414L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" /></svg></button></div></div><div class="px-4 text-sm text-gray-400">最新影片:</div><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="block w-full aspect-video bg-gray-700/50 overflow-hidden mt-2 relative"><img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1a202c/e53e3e?text=Image+Error';"></a>${video.duration ? `<div class="duration-line-container"><div class="duration-line-accent"></div><span class="duration-text-c">${formatDuration(video.duration)}</span></div>` : ''}<div class="p-4 flex flex-col flex-grow mt-auto"><a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noopener noreferrer" class="flex-grow"><h3 class="font-bold text-lg text-gray-100 leading-tight hover:text-cyan-400 transition-colors">${video.title}</h3></a><div class="flex justify-between items-center text-sm text-gray-300 mt-3 pt-3 border-t border-gray-500/50"><span>${formatNumber(video.viewCount)} 次觀看</span><div class="flex items-center gap-x-2">${relatedClipsButton}<span>${timeAgo(video.publishedAt)}</span></div></div></div></div>`;
 
             if (video.originalStreamInfo) {
                 card.querySelector('.related-clips-btn').addEventListener('click', (e) => {
@@ -2063,19 +1981,7 @@
                 const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
                 let baseFilteredVideos;
                 if (activeChannelFilter) { baseFilteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id); }
-                else if (activeMemberFilter !== 'all') {
-                    const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
-                    const filterKeyword = activeMemberFilter.toLowerCase();
-                    baseFilteredVideos = visibleVideos.filter(video => {
-                        // Precise Filtering: Check targetChannelIds if available
-                        if (member && member.channelIds && member.channelIds.length > 0 && video.targetChannelIds && Array.isArray(video.targetChannelIds) && video.targetChannelIds.length > 0) {
-                            const isMatch = video.targetChannelIds.some(id => member.channelIds.includes(id));
-                            if (isMatch) return true; // Explicit match found
-                        }
-                        // Fallback to keyword search
-                        return (video.searchableText || '').includes(filterKeyword);
-                    });
-                }
+                else if (activeMemberFilter !== 'all') { const filterKeyword = activeMemberFilter.toLowerCase(); baseFilteredVideos = visibleVideos.filter(video => (video.searchableText || '').includes(filterKeyword)); }
                 else { baseFilteredVideos = visibleVideos; }
                 let filteredVideos;
                 if (!isClassifying && activeVideoTypeFilter !== 'all') { filteredVideos = baseFilteredVideos.filter(v => v.videoType === activeVideoTypeFilter); }
