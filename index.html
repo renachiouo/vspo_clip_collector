@@ -2247,6 +2247,10 @@
                         try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); }
                         catch (e) { console.error(`解析 'originalStreamInfo' 失敗 (Video ID: ${v.id}):`, e); v.originalStreamInfo = null; }
                     }
+                    if (v.targetChannelIds && typeof v.targetChannelIds === 'string') {
+                        try { v.targetChannelIds = JSON.parse(v.targetChannelIds); }
+                        catch (e) { console.error(`解析 'targetChannelIds' 失敗 (Video ID: ${v.id}):`, e); v.targetChannelIds = []; }
+                    }
                     return v;
                 });
 
