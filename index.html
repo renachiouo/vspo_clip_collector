@@ -1259,6 +1259,7 @@
                     <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
+                    <button class="admin-tab-btn ${activeTab === 'attribution' ? 'active' : ''} whitespace-nowrap" data-tab="attribution">非同步歸屬</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
                     <div id="tab-pending_jp" class="admin-tab-content ${activeTab === 'pending_jp' ? 'active' : ''} space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
@@ -1366,6 +1367,26 @@
                                     <button id="save-announcement-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition-colors">儲存設定</button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div id="tab-attribution" class="admin-tab-content ${activeTab === 'attribution' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-indigo-400 mb-4">非同步歸屬補全 (Async Attribution)</h4>
+                            <p class="text-gray-400 mb-4 text-sm">
+                                此功能會觸發後端 Worker，處理佇列中等待歸屬分析的影片。<br>
+                                通常由系統排程自動執行，您也可以在此手動觸發以立即處理。
+                            </p>
+                            <div class="flex gap-4">
+                                <button id="trigger-enrichment-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition shadow-md flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    立即觸發歸屬補全 Worker
+                                </button>
+                                <button id="backfill-queue-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded transition shadow-md flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    掃描並排程舊影片 (Backfill Queue)
+                                </button>
+                            </div>
+                            <div id="enrichment-log" class="mt-4 p-3 bg-gray-900 rounded text-xs font-mono text-gray-300 h-40 overflow-y-auto hidden"></div>
                         </div>
                     </div>
                 </div>
@@ -1589,6 +1610,36 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                             立即觸發歸屬補全
                        `;
+                    }
+                });
+
+                const backfillQueueBtn = modal.querySelector('#backfill-queue-btn');
+                backfillQueueBtn.addEventListener('click', async () => {
+                    if (!confirm('確定要掃描所有舊影片並將「有來源資訊但無歸屬資料」的影片加入佇列嗎？\n這可能需要幾秒鐘的時間。')) return;
+
+                    backfillQueueBtn.disabled = true;
+                    backfillQueueBtn.innerHTML = '<span class="animate-spin">↻</span> 掃描中...';
+                    logDiv.classList.remove('hidden');
+                    logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 開始掃描舊影片...\n`;
+
+                    try {
+                        const res = await fetchApi('admin/manage', {
+                            method: 'POST',
+                            body: { action: 'backfill_attribution_queue', password }
+                        });
+
+                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 掃描完成: ${res.message}\n`;
+                        alert(res.message);
+                    } catch (e) {
+                        console.error(e);
+                        logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] 掃描錯誤: ${e.message}\n`;
+                        alert(`操作失敗: ${e.message}`);
+                    } finally {
+                        backfillQueueBtn.disabled = false;
+                        backfillQueueBtn.innerHTML = `
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            掃描並排程舊影片 (Backfill Queue)
+                        `;
                     }
                 });
             }
