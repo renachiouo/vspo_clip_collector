@@ -972,7 +972,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V13.0';
+        const CURRENT_APP_VERSION = 'V12.3';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -1004,13 +1004,6 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
-            'V13.0': {
-                title: 'V13.0 精準篩選與 Twitch 支援',
-                date: '2025-12-09',
-                features: [
-                    '【系統】過濾系統大升級！現在透過「原直播連結」進行判定，徹底解決關鍵字誤判問題。',
-                ]
-            },
             'V12.3': {
                 title: 'V12.3 時長顯示',
                 date: '2025-12-08',
@@ -1064,49 +1057,9 @@
             },
         };
 
-        // VSPO 成員資料
-        const vspoJPMembers = [
-            { "name_jp": "花芽すみれ", "filter_keyword": "花芽すみれ", "color": "#b0c4de", "youtubeChannelId": "UCyLGcqYs7RsBb3L0SJfzGYA", "twitchChannelId": "695556933" },
-            { "name_jp": "花芽なずな", "filter_keyword": "花芽なずな", "color": "#fabedc", "youtubeChannelId": "UCiMG6VdScBabPhJ1ZtaVmbw", "twitchChannelId": "790167759" },
-            { "name_jp": "小雀とと", "filter_keyword": "小雀とと", "color": "#f5eb4a", "youtubeChannelId": "UCgTzsBI0DIRopMylJEDqnog", "twitchChannelId": "" },
-            { "name_jp": "一ノ瀬うるは", "filter_keyword": "一ノ瀬うるは", "color": "#4182fa", "youtubeChannelId": "UC5LyYg6cCA4yHEYvtUsir3g", "twitchChannelId": "582689327" },
-            { "name_jp": "胡桃のあ", "filter_keyword": "胡桃のあ", "color": "#ffdbfe", "youtubeChannelId": "UCIcAj6WkJ8vZ7DeJVgmeqKw", "twitchChannelId": "600770697" },
-            { "name_jp": "兎咲ミミ", "filter_keyword": "兎咲ミミ", "color": "#c7b2d6", "youtubeChannelId": "UCnvVG9RbOW3J6Ifqo-zKLiw", "twitchChannelId": "" },
-            { "name_jp": "空澄セナ", "filter_keyword": "空澄セナ", "color": "#ffffff", "youtubeChannelId": "UCF_U2GCKHvDz52jWdizppIA", "twitchChannelId": "776751504" },
-            { "name_jp": "橘ひなの", "filter_keyword": "橘ひなの", "color": "#fa96c8", "youtubeChannelId": "UCvUc0m317LWTTPZoBQV479A", "twitchChannelId": "568682215" },
-            { "name_jp": "英リサ", "filter_keyword": "英リサ", "color": "#d1de79", "youtubeChannelId": "UCurEA8YoqFwimJcAuSHU0MQ", "twitchChannelId": "777700650" },
-            { "name_jp": "如月れん", "filter_keyword": "如月れん", "color": "#be2152", "youtubeChannelId": ["UCGWa1dMU_sDCaRQjdabsVgg", "UCy3D82EP-4fBm9nXJOn9S6w"], "twitchChannelId": "722162135" },
-            { "name_jp": "神成きゅぴ", "filter_keyword": "神成きゅぴ", "color": "#ffd23c", "youtubeChannelId": "UCMp55EbT_ZlqiMS3lCj01BQ", "twitchChannelId": "550676410" },
-            { "name_jp": "八雲べに", "filter_keyword": "八雲べに", "color": "#85cab3", "youtubeChannelId": "UCjXBuHmWkieBApgBhDuJMMQ", "twitchChannelId": "700465409" },
-            { "name_jp": "藍沢エマ", "filter_keyword": "藍沢エマ", "color": "#b4f1f9", "youtubeChannelId": ["UCPkKpOHxEDcwmUAnRpIu-Ng", "UC6YoF5-OmChAXHNff3ifR6Q"], "twitchChannelId": "848822715" },
-            { "name_jp": "紫宮るな", "filter_keyword": "紫宮るな", "color": "#d6adff", "youtubeChannelId": "UCD5W21JqNMv_tV9nfjvF9sw", "twitchChannelId": "773185713" },
-            { "name_jp": "猫汰つな", "filter_keyword": "猫汰つな", "color": "#ff3652", "youtubeChannelId": "UCIjdfjcSaEgdjwbgjxC3ZWg", "twitchChannelId": "858359105" },
-            { "name_jp": "白波らむね", "filter_keyword": "白波らむね", "color": "#8eced9", "youtubeChannelId": ["UC61OwuYOVuKkpKnid-43Twg", "UClM3dqWX2eH7vBpBL4XP6BQ"], "twitchChannelId": "858359149" },
-            { "name_jp": "小森めと", "filter_keyword": "小森めと", "color": "#fba03f", "youtubeChannelId": "UCzUNASdzI4PV5SlqtYwAkKQ", "twitchChannelId": "801682194" },
-            { "name_jp": "夢野あかり", "filter_keyword": "夢野あかり", "color": "#ff998d", "youtubeChannelId": "UCS5l_Y0oMVTjEos2LuyeSZQ", "twitchChannelId": "584184005" },
-            { "name_jp": "夜乃くろむ", "filter_keyword": "夜乃くろむ", "color": "#909ec8", "youtubeChannelId": "UCX4WL24YEOUYd7qDsFSLDOw", "twitchChannelId": "1250148772" },
-            { "name_jp": "紡木こかげ", "filter_keyword": "紡木こかげ", "color": "#5195e1", "youtubeChannelId": "UC-WX1CXssCtCtc2TNIRnJzg", "twitchChannelId": "1184405770" },
-            { "name_jp": "千燈ゆうひ", "filter_keyword": "千燈ゆうひ", "color": "#ed784a", "youtubeChannelId": ["UCuDY3ibSP2MFRgf7eo3cojg", "UCNfxcLBvnwT9nCDy7OR-i_Q"], "twitchChannelId": "1097252496" },
-            { "name_jp": "蝶屋はなび", "filter_keyword": "蝶屋はなび", "color": "#ea5506", "youtubeChannelId": "UCL9hJsdk9eQa0IlWbFB2oRg", "twitchChannelId": "1361841459" },
-            { "name_jp": "甘結もか", "filter_keyword": "甘結もか", "color": "#eca0aa", "youtubeChannelId": "UC8vKBjGY2HVfbW9GAmgikWw", "twitchChannelId": "" }
-        ];
-
-        const otherMemberGroups = {
-            "VSPO! EN": [
-                { "name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true, "youtubeChannelId": "UCCra1t-eIlO3ULyXQQMD9Xw", "twitchChannelId": "1102206195" },
-                { "name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true, "youtubeChannelId": "UCLlJpxXt6L5d-XQ0cDdIyDQ", "twitchChannelId": "1102211983" },
-                { "name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true, "youtubeChannelId": "UCeCWj-SiJG9SWN6wGORiLmw", "twitchChannelId": "1102212264" },
-                { "name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true, "youtubeChannelId": "UCKSpM183c85d5V2cW5qaUjA", "twitchChannelId": "1125214436" },
-                { "name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true, "youtubeChannelId": "UC7Xglp1fske9zmRe7Oj8YyA", "twitchChannelId": "1125216387" },
-                { "name_jp": "Eris Suzukami", "filter_keyword": "Eris", "color": "#E9F3FD", "youtubeChannelId": "UCp_3ej2br9l9L1DSoHVDZGw", "twitchChannelId": "" }
-            ],
-            "VSPO! CN": [
-                { "name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true },
-                { "name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true },
-                { "name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true },
-                { "name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true }
-            ]
-        };
+        // VSPO 成員資料 (與您原先相同)
+        const vspoJPMembers = [{ "name_jp": "花芽すみれ", "filter_keyword": "花芽すみれ", "color": "#b0c4de" }, { "name_jp": "花芽なずな", "filter_keyword": "花芽なずな", "color": "#fabedc" }, { "name_jp": "小雀とと", "filter_keyword": "小雀とと", "color": "#f5eb4a" }, { "name_jp": "一ノ瀬うるは", "filter_keyword": "一ノ瀬うるは", "color": "#4182fa" }, { "name_jp": "胡桃のあ", "filter_keyword": "胡桃のあ", "color": "#ffdbfe" }, { "name_jp": "兎咲ミミ", "filter_keyword": "兎咲ミミ", "color": "#c7b2d6" }, { "name_jp": "空澄セナ", "filter_keyword": "空澄セナ", "color": "#ffffff" }, { "name_jp": "橘ひなの", "filter_keyword": "橘ひなの", "color": "#fa96c8" }, { "name_jp": "英リサ", "filter_keyword": "英リサ", "color": "#d1de79" }, { "name_jp": "如月れん", "filter_keyword": "如月れん", "color": "#be2152" }, { "name_jp": "神成きゅぴ", "filter_keyword": "神成きゅぴ", "color": "#ffd23c" }, { "name_jp": "八雲べに", "filter_keyword": "八雲べに", "color": "#85cab3" }, { "name_jp": "藍沢エマ", "filter_keyword": "藍沢エマ", "color": "#b4f1f9" }, { "name_jp": "紫宮るな", "filter_keyword": "紫宮るな", "color": "#d6adff" }, { "name_jp": "猫汰つな", "filter_keyword": "猫汰つな", "color": "#ff3652" }, { "name_jp": "白波らむね", "filter_keyword": "白波らむね", "color": "#8eced9" }, { "name_jp": "小森めと", "filter_keyword": "小森めと", "color": "#fba03f" }, { "name_jp": "夢野あかり", "filter_keyword": "夢野あかり", "color": "#ff998d" }, { "name_jp": "夜乃くろむ", "filter_keyword": "夜乃くろむ", "color": "#909ec8" }, { "name_jp": "紡木こかげ", "filter_keyword": "紡木こかげ", "color": "#5195e1" }, { "name_jp": "千燈ゆうひ", "filter_keyword": "千燈ゆうひ", "color": "#ed784a" }, { "name_jp": "蝶屋はなび", "filter_keyword": "蝶屋はなび", "color": "#ea5506" }, { "name_jp": "甘結もか", "filter_keyword": "甘結もか", "color": "#eca0aa" }];
+        const otherMemberGroups = { "VSPO! EN": [{ "name_jp": "Remia Aotsuki", "filter_keyword": "Remia", "color": "#398FB2", "forceWhiteText": true }, { "name_jp": "Arya Kuroha", "filter_keyword": "Arya", "color": "#000000", "forceWhiteText": true }, { "name_jp": "Jira Jisaki", "filter_keyword": "Jira", "color": "#606D3D", "forceWhiteText": true }, { "name_jp": "Narin Mikure", "filter_keyword": "Narin", "color": "#F3A6EF", "forceWhiteText": true }, { "name_jp": "Riko Solari", "filter_keyword": "Riko", "color": "#9373D7", "forceWhiteText": true }, { "name_jp": "Eris Suzukami", "filter_keyword": "Eris", "color": "#E9F3FD" }], "VSPO! CN": [{ "name_jp": "小针彩", "filter_keyword": "小針彩", "color": "#FE688D", "forceWhiteText": true }, { "name_jp": "白咲露理", "filter_keyword": "白咲露理", "color": "#E9E5E6", "forceWhiteText": true }, { "name_jp": "帕妃", "filter_keyword": "帕妃", "color": "#9F0019", "forceWhiteText": true }, { "name_jp": "千郁郁", "filter_keyword": "千郁郁", "color": "#8986C0", "forceWhiteText": true }] };
         const allMembers = [...vspoJPMembers, ...Object.values(otherMemberGroups).flat()];
 
         // --- 黑名單 & Modal 相關函式 (與之前相同) ---
@@ -2028,29 +1981,7 @@
                 const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
                 let baseFilteredVideos;
                 if (activeChannelFilter) { baseFilteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id); }
-                else if (activeMemberFilter !== 'all') {
-                    const filterKeyword = activeMemberFilter.toLowerCase();
-                    // 找出目前選中的成員資料
-                    const targetMember = allMembers.find(m => m.filter_keyword === activeMemberFilter);
-
-                    baseFilteredVideos = visibleVideos.filter(video => {
-                        // 1. 優先檢查 Channel ID (Supported Multi-Attribution)
-                        if (targetMember && video.targetChannelIds && Array.isArray(video.targetChannelIds) && video.targetChannelIds.length > 0) {
-                            // 檢查影片的 targetChannelIds 是否包含該成員的 YouTube 或 Twitch ID
-                            const memberYoutubeIds = Array.isArray(targetMember.youtubeChannelId) ? targetMember.youtubeChannelId : [targetMember.youtubeChannelId].filter(Boolean);
-                            const memberTwitchId = targetMember.twitchChannelId;
-
-                            const isIdMatch = video.targetChannelIds.some(id =>
-                                memberYoutubeIds.includes(id) || (memberTwitchId && id === memberTwitchId)
-                            );
-
-                            return isIdMatch;
-                        }
-
-                        // 2. 如果沒有 targetChannelIds (未識別出成員)，回退到關鍵字篩選
-                        return (video.searchableText || '').includes(filterKeyword);
-                    });
-                }
+                else if (activeMemberFilter !== 'all') { const filterKeyword = activeMemberFilter.toLowerCase(); baseFilteredVideos = visibleVideos.filter(video => (video.searchableText || '').includes(filterKeyword)); }
                 else { baseFilteredVideos = visibleVideos; }
                 let filteredVideos;
                 if (!isClassifying && activeVideoTypeFilter !== 'all') { filteredVideos = baseFilteredVideos.filter(v => v.videoType === activeVideoTypeFilter); }
@@ -2246,10 +2177,6 @@
                     if (v.originalStreamInfo && typeof v.originalStreamInfo === 'string') {
                         try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); }
                         catch (e) { console.error(`解析 'originalStreamInfo' 失敗 (Video ID: ${v.id}):`, e); v.originalStreamInfo = null; }
-                    }
-                    if (v.targetChannelIds && typeof v.targetChannelIds === 'string') {
-                        try { v.targetChannelIds = JSON.parse(v.targetChannelIds); }
-                        catch (e) { console.error(`解析 'targetChannelIds' 失敗 (Video ID: ${v.id}):`, e); v.targetChannelIds = []; }
                     }
                     return v;
                 });
