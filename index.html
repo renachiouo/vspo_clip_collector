@@ -2044,10 +2044,10 @@
                                 memberYoutubeIds.includes(id) || (memberTwitchId && id === memberTwitchId)
                             );
 
-                            if (isIdMatch) return true; // 如果 ID 對上，直接通過
+                            return isIdMatch;
                         }
 
-                        // 2. 如果沒有 targetChannelIds 或 ID 沒對上，回退到關鍵字篩選
+                        // 2. 如果沒有 targetChannelIds (未識別出成員)，回退到關鍵字篩選
                         return (video.searchableText || '').includes(filterKeyword);
                     });
                 }
