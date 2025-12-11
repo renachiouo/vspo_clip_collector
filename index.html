@@ -1651,17 +1651,32 @@
             const body = options.body ? JSON.stringify(options.body) : null;
             const headers = { 'Content-Type': 'application/json', ...options.headers };
 
-            const response = await fetch(url, {
-                method: options.method || 'GET',
-                headers: headers,
-                body: body,
-            });
+            // 新增 timeout 邏輯 (預設 10 秒)
+            const controller = new AbortController();
+            const timeout = options.timeout || 10000;
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-            const data = await response.json().catch(() => ({ error: `請求失敗，狀態碼: ${response.status}` }));
-            if (!response.ok) {
-                throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
+            try {
+                const response = await fetch(url, {
+                    method: options.method || 'GET',
+                    headers: headers,
+                    body: body,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await response.json().catch(() => ({ error: `請求失敗，狀態碼: ${response.status}` }));
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
+                }
+                return data;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error(`請求逾時 (${timeout / 1000}秒)，伺服器可能正在喚醒中，請重新整理頁面。`);
+                }
+                throw error;
             }
-            return data;
         }
 
         async function performUpdateCheck(isManual = false) {
@@ -1693,7 +1708,7 @@
                 errorMessage = "API 每日配額已用盡";
                 errorHint = "請等待台灣時間下午 4 點後，配額將會自動重置。";
             }
-            return `<div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center"><strong class="font-bold">發生錯誤！</strong><p class="block sm:inline ml-2">${errorMessage}</p><p class="mt-2 text-sm">${errorHint}</p></div>`;
+            return `<div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-center flex flex-col items-center gap-2"><div class="flex items-center justify-center gap-2"><strong class="font-bold">發生錯誤！</strong><span class="block sm:inline">${errorMessage}</span></div><p class="text-sm mt-1">${errorHint}</p><button onclick="window.location.reload()" class="mt-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-md text-sm transition-colors duration-200 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>重新整理頁面</button></div>`;
         }
 
 
