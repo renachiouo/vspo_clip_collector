@@ -1280,16 +1280,7 @@
                         ${createListItems(listsData.blacklist_jp, 'blacklist_jp')}
                     </div>
                     <div id="tab-backfill" class="admin-tab-content ${activeTab === 'backfill' ? 'active' : ''} space-y-4">
-                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
-                             <h4 class="text-lg font-semibold text-red-400 mb-2">資料庫維護</h4>
-                             <p class="text-sm text-gray-400 mb-2">清除舊版 (V2) 的冗餘資料以釋放記憶體空間。</p>
-                             <button id="cleanup-legacy-btn" class="bg-red-900 border border-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors w-full">清除舊版資料 (Free up Memory)</button>
-                        </div>
-                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
-                             <h4 class="text-lg font-semibold text-orange-400 mb-2">深度掃描 (Deep Scan)</h4>
-                             <p class="text-sm text-gray-400 mb-2">掃描並刪除所有無法識別的 V1/殭屍資料 (vspo-db:*)。<br>注意：操作不可逆，請僅在必要時執行。</p>
-                             <button id="cleanup-deep-scan-btn" class="bg-orange-900 border border-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition-colors w-full">執行深度掃描</button>
-                        </div>
+
                         <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
                             <h4 class="text-lg font-semibold text-indigo-400 mb-4">歷史資料回填</h4>
                             <div class="space-y-4">
@@ -1648,48 +1639,9 @@
                     alert('回填任務已完成，請查看日誌確認結果。');
                 });
 
-                // Cleanup Legacy Button Logic
-                const cleanupBtn = modal.querySelector('#cleanup-legacy-btn');
-                if (cleanupBtn) {
-                    cleanupBtn.addEventListener('click', async () => {
-                        if (!confirm('確定要清除舊版 V2 資料嗎？這將會刪除所有舊版格式的資料以釋放空間。\n(不會影響目前的 V12 運作)')) return;
 
-                        const originalText = cleanupBtn.innerText;
-                        cleanupBtn.innerText = '清理中...';
-                        cleanupBtn.disabled = true;
 
-                        try {
-                            await performAdminAction('cleanup_legacy', null, null, password);
-                            alert('清除完成！請檢查 Vercel 後台的記憶體使用量。');
-                        } catch (error) {
-                            alert(`清除失敗: ${error.message}`);
-                        } finally {
-                            cleanupBtn.innerText = originalText;
-                            cleanupBtn.disabled = false;
-                        }
-                    });
-                }
 
-                const deepScanBtn = modal.querySelector('#cleanup-deep-scan-btn');
-                if (deepScanBtn) {
-                    deepScanBtn.addEventListener('click', async () => {
-                        if (!confirm('警告：您即將執行「深度掃描」。\n這將會強制刪除所有不屬於 V2/V3/V4 的 Redis Keys。\n\n請確認現在沒有其他應用程式正在使用 vspo-db:* 開頭的 Key。\n\n確定要執行嗎？')) return;
-
-                        const originalText = deepScanBtn.innerText;
-                        deepScanBtn.innerText = '掃描清理中...';
-                        deepScanBtn.disabled = true;
-
-                        try {
-                            const res = await fetchApi('admin/manage', { method: 'POST', body: { action: 'cleanup_deep_scan', password } });
-                            alert(res.message);
-                        } catch (error) {
-                            alert(`深度掃描失敗: ${error.message}`);
-                        } finally {
-                            deepScanBtn.innerText = originalText;
-                            deepScanBtn.disabled = false;
-                        }
-                    });
-                }
             }
 
             // 管理日誌邏輯
