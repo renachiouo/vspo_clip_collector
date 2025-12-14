@@ -2198,8 +2198,15 @@
             console.log("開始輪詢分類狀態...");
             state.classificationIntervalId = setInterval(async () => {
                 try {
-                    const status = await fetchApi('check-status');
-                    if (status.isDone) {
+                    const status = await fetchApi('check-status'); // Returns { isDone: boolean }
+
+                    if (!status.isDone) {
+                        // [Optimization] If not done, actively trigger the next batch immediately
+                        console.log("分類尚未完成，觸發下一批次處理...");
+                        fetchApi('classify-videos', { method: 'POST' })
+                            .then(res => console.log("批次處理結果:", res.message))
+                            .catch(err => console.error("批次處理觸發失敗:", err));
+                    } else {
                         console.log("分類完成！停止輪詢並重新獲取最終資料。");
                         clearInterval(state.classificationIntervalId);
                         state.classificationIntervalId = null;
@@ -2210,11 +2217,12 @@
                     }
                 } catch (error) {
                     console.error("輪詢失敗:", error);
-                    clearInterval(state.classificationIntervalId);
-                    state.isClassifying = false;
-                    render();
+                    // Do not stop polling on error, just retry next tick
+                    // clearInterval(state.classificationIntervalId);
+                    // state.isClassifying = false;
+                    // render();
                 }
-            }, 3000);
+            }, 5000); // 增加間隔到 5s 避免過於頻繁
         }
 
         async function initializeApp(force = false, password = '') {
