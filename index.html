@@ -2333,15 +2333,23 @@
                     }
                 }
                 // --- END: 處理公告顯示 ---
+                // --- END: 處理公告顯示 ---
 
-                const classificationStatus = await fetchApi('check-status');
-                state.needsClassification = !classificationStatus.isDone;
+                // 獨立處理分類狀態檢查，避免因其失敗/逾時而導致整個頁面顯示錯誤
+                try {
+                    const classificationStatus = await fetchApi('check-status', { timeout: 5000 }); // 給予較短的 timeout
+                    state.needsClassification = !classificationStatus.isDone;
 
-                if (state.needsClassification) {
-                    console.log("偵測到後端有未分類的影片，啟動背景分類程序。");
-                    state.isClassifying = true;
-                    fetchApi('classify-videos', { method: 'POST' }).catch(err => console.error("觸發分類失敗:", err));
-                    startClassificationPolling();
+                    if (state.needsClassification) {
+                        console.log("偵測到後端有未分類的影片，啟動背景分類程序。");
+                        state.isClassifying = true;
+                        // 不等待分類請求結果，避免阻塞
+                        fetchApi('classify-videos', { method: 'POST' }).catch(err => console.error("背景觸發分類失敗 (非致命):", err));
+                        startClassificationPolling();
+                    }
+                } catch (statusError) {
+                    console.warn("檢查分類狀態失敗 (非致命錯誤):", statusError);
+                    // 即使檢查失敗，也不影響主頁面顯示
                 }
 
             } catch (error) {
