@@ -2280,7 +2280,7 @@
                 const bannerText = document.getElementById('announcement-text');
                 const closeBtn = document.getElementById('close-announcement-btn');
 
-                if (announcement && announcement.active === 'true') {
+                if (announcement && announcement.active) {
                     const dismissedKey = `vspo_announcement_dismissed_${announcement.timestamp}`;
                     const isDismissed = localStorage.getItem(dismissedKey);
 
