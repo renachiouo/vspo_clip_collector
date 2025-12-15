@@ -1121,7 +1121,7 @@
             modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay || e.target.id === 'close-version-modal-btn' || e.target.closest('#close-version-modal-btn')) { closeModal(); } });
         }
 
-        async function showRelatedClipsModal(originalStreamInfo) {
+        async function showRelatedClipsModal(videoId) {
             const modalId = 'related-clips-modal';
             const existingModal = document.getElementById(modalId);
             if (existingModal) existingModal.remove();
@@ -1151,7 +1151,7 @@
             document.getElementById('close-related-clips-modal-btn').addEventListener('click', closeModal);
 
             try {
-                const data = await fetchApi('get-related-clips', { params: { platform: originalStreamInfo.platform, id: originalStreamInfo.id } });
+                const data = await fetchApi('get-related-clips', { params: { id: videoId } });
                 const container = document.getElementById('related-clips-container');
                 if (data.videos && data.videos.length > 0) {
                     const grid = document.createElement('div');
@@ -1835,7 +1835,7 @@
                 card.querySelector('.related-clips-btn').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    showRelatedClipsModal(video.originalStreamInfo);
+                    showRelatedClipsModal(video.id);
                 });
             }
             return card;
@@ -1880,7 +1880,7 @@
                 item.querySelector('.related-clips-btn').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    showRelatedClipsModal(video.originalStreamInfo);
+                    showRelatedClipsModal(video.id);
                 });
             }
             return item;
