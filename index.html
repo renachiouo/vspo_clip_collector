@@ -2031,7 +2031,7 @@
             header.innerHTML = `
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 flex justify-center items-baseline flex-wrap gap-x-3 px-4">
                 <span><span class="secret-trigger" data-char="れ">れ</span><span class="secret-trigger" data-char="な">な</span><span class="secret-trigger" data-char="ち">ち</span>的${titleText}</span>
-                <span class="text-lg align-middle text-gray-500 whitespace-nowrap">${CURRENT_APP_VERSION}</span>
+                <span class="text-lg align-middle text-gray-500 whitespace-nowrap hover:text-cyan-400 cursor-pointer transition-colors" onclick="showVersionUpdateModal(Object.keys(UPDATE_LOGS).sort((a, b) => parseFloat(b.slice(1)) - parseFloat(a.slice(1))))" title="點擊查看更新日誌">${CURRENT_APP_VERSION}</span>
             </h1>
             <div id="lang-switcher" class="mt-6 flex justify-center items-center space-x-4">
                 <button data-lang="cn" class="lang-switcher-btn ${activeLanguage === 'cn' ? 'active' : ''}">中文精華</button>
@@ -2111,7 +2111,8 @@
                         const filterControlsHTML = (() => {
                             const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
                             const viewModeButtons = `<div class="flex space-x-2"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
-                            return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4"><div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div></div>`;
+                            const typeFilterButtons = `<div class="flex space-x-2 mr-4"><button class="type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" data-type="all" ${isClassifying ? 'disabled' : ''}>全部</button><button class="type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" data-type="video" ${isClassifying ? 'disabled' : ''}>只看影片</button><button class="type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" data-type="short" ${isClassifying ? 'disabled' : ''}>只看Shorts</button></div>`;
+                            return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4"><div class="hidden md:block">${typeFilterButtons}</div><div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div></div><div class="md:hidden mt-2 flex justify-between">${typeFilterButtons}</div>`;
                         })();
                         videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
                         videosSection.appendChild(videosHeader);
@@ -2387,6 +2388,17 @@
             document.body.appendChild(backToTopBtn);
 
 
+
+            // --- Video Type Filters (Delegated) ---
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('.type-filter-btn');
+                if (btn && !btn.disabled) {
+                    state.activeVideoTypeFilter = btn.dataset.type;
+                    state.currentPage = 1;
+                    if (state.activeLanguage === 'jp') { state.activeTab = btn.dataset.type; }
+                    render(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+                }
+            });
 
             // --- Legacy Listeners Restored for CN Mode ---
             document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
