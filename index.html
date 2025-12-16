@@ -997,6 +997,8 @@
             activeMemberFilter: 'all',
             activeChannelFilter: null,
             activeLanguage: 'cn',
+            activeTab: 'all', // 'all', 'video', 'short', 'channels'
+            visibleCount: 24, // Initial visible count for infinite scroll
         };
 
         const appContainer = document.getElementById('app');
@@ -1004,6 +1006,21 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V12.5': {
+                title: 'V12.5 日文區大改版',
+                date: '2025-12-16',
+                features: [
+                    '【UI更新】日文區升級為「分頁式」設計。',
+                ]
+            },
+            'V12.4': {
+                title: 'V12.4 系統優化',
+                date: '2025-12-12',
+                features: [
+                    '【架構更新】後端資料庫轉移。',
+                    '【效能優化】大幅降低資料傳輸量，提升載入速度。',
+                ]
+            },
             'V12.3': {
                 title: 'V12.3 時長顯示',
                 date: '2025-12-08',
@@ -2075,77 +2092,224 @@
                     if (activeVideoTypeFilter !== 'all') { message = `找不到符合條件的 ${activeVideoTypeFilter === 'short' ? 'Shorts 短片' : '一般影片'}。`; }
                     rightContent.innerHTML = `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">${message}</p>`;
                 } else {
-                    const videosSection = document.createElement('section');
-                    videosSection.id = 'videos-section';
-                    if (activeChannelFilter) {
-                        const filterBanner = document.createElement('div');
-                        filterBanner.className = 'flex items-center justify-between bg-purple-900/50 text-purple-200 px-4 py-2 rounded-lg mb-6';
-                        filterBanner.innerHTML = `<span>目前篩選中：<strong class="font-semibold">${activeChannelFilter.name}</strong></span><button id="clear-channel-filter-btn" class="p-1 rounded-full hover:bg-white/20 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
-                        videosSection.appendChild(filterBanner);
-                    }
-                    const videosHeader = document.createElement('div');
-                    videosHeader.className = "flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4";
-                    const titleHTML = `<div class="flex items-center"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2><div class="tooltip ml-2"><button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button><div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 20 分鐘更新一次</p><p>2. 為關鍵字搜尋，故可能出現：</p><div class="pl-4"><p>a. 含VSPO關鍵字的非VSPO烤肉</p><p>b. 含中文關鍵字的外文剪輯</p><p class="mt-2">有以上情形請至頁首回報處回報</p></div></div></div></div>`;
-                    const filterControlsHTML = (() => {
-                        const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
-                        const viewModeButtons = `<div class="flex space-x-2"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
-                        const typeLabels = { all: '全部顯示', video: '只看影片', short: '只看Shorts' };
-                        const classifyingSpinner = `<div class="spinner"></div>`;
-                        const desktopTypeFilters = `<div id="desktop-type-filters" class="hidden md:flex space-x-2"><button data-type-filter="all" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>${isClassifying ? classifyingSpinner : ''} <span>${isClassifying ? '分類中' : '全部'}</span></button><button data-type-filter="video" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看影片</button><button data-type-filter="short" class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" ${isClassifying ? 'disabled' : ''}>只看Shorts</button></div>`;
-                        const mobileTypeFilter = `<div class="relative md:hidden"><button id="mobile-filter-toggle" class="tab-btn type-filter-btn flex items-center space-x-2" ${isClassifying ? 'disabled' : ''}>${isClassifying ? classifyingSpinner : ''}<span>${isClassifying ? '分類中...' : typeLabels[activeVideoTypeFilter]}</span>${!isClassifying ? `<svg class="w-4 h-4 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>` : ''}</button><div id="mobile-filter-menu" class="dropdown-menu ${isFilterDropdownOpen ? 'visible' : ''}"><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="all">全部顯示</a><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="video">只看影片</a><a href="#" class="block px-4 py-2 text-sm text-gray-200 hover:bg-teal-700" data-type-filter="short">只看Shorts</a></div></div>`;
-                        return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4"><div class="flex items-center space-x-4">${desktopTypeFilters}${mobileTypeFilter}</div><div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div></div>`;
-                    })();
-                    videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
-                    videosSection.appendChild(videosHeader);
-                    const viewContainer = document.createElement('div');
-                    viewContainer.style.minHeight = '720px';
-                    const videosToDisplay = filteredVideos;
-                    if (activeView === 'latest') {
-                        const grid = document.createElement('div');
-                        const isShortsMode = !isClassifying && activeVideoTypeFilter === 'short';
-                        let gridClasses = 'grid gap-4 ';
-                        if (isShortsMode) { gridClasses += 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 view-mode-shorts-only'; }
-                        else { gridClasses += 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; }
-                        grid.className = gridClasses;
-                        const sliceCount = window.innerWidth < 1280 ? 10 : 12;
-                        videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
-                        viewContainer.appendChild(grid);
+
+
+                    if (state.activeLanguage === 'cn') {
+                        // ============================================================
+                        // CN MODE: LEGACY SPLIT LAYOUT (Video Top + Channel Bottom)
+                        // ============================================================
+
+                        const videosSection = document.createElement('section');
+                        videosSection.id = 'videos-section';
+
+                        // Header (Title + Filters)
+                        const videosHeader = document.createElement('div');
+                        videosHeader.className = "flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4";
+                        const titleHTML = `<div class="flex items-center"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2><div class="tooltip ml-2"><button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button><div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 20 分鐘更新一次</p><p>2. 為關鍵字搜尋，故可能出現：</p><div class="pl-4"><p>a. 含VSPO關鍵字的非VSPO烤肉</p><p>b. 含中文關鍵字的外文剪輯</p><p class="mt-2">有以上情形請至頁首回報處回報</p></div></div></div></div>`;
+
+                        // Legacy Filter Controls (Latest 12 Button)
+                        const filterControlsHTML = (() => {
+                            const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
+                            const viewModeButtons = `<div class="flex space-x-2"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
+                            return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4"><div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div></div>`;
+                        })();
+                        videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
+                        videosSection.appendChild(videosHeader);
+
+                        // Video Grid
+                        const viewContainer = document.createElement('div');
+                        viewContainer.style.minHeight = '720px';
+                        const videosToDisplay = filteredVideos; // Uses legacy filtering logic (state.activeVideoTypeFilter etc but CN doesn't have type tabs usually?)
+
+                        if (activeView === 'latest') {
+                            const grid = document.createElement('div');
+                            const gridClasses = 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+                            grid.className = gridClasses;
+                            const sliceCount = window.innerWidth < 1280 ? 10 : 12;
+                            videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
+                            viewContainer.appendChild(grid);
+                        } else {
+                            const listContainer = document.createElement('div');
+                            listContainer.className = 'space-y-3';
+                            const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
+                            const startIndex = (currentPage - 1) * itemsPerPage;
+                            const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
+                            paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
+                            viewContainer.appendChild(listContainer);
+                            if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
+                        }
+                        videosSection.appendChild(viewContainer);
+                        rightContent.appendChild(videosSection);
+
+                        // Channel List (Bottom)
+                        const channelListSection = document.createElement('section');
+                        const channelListHeader = document.createElement('div');
+                        channelListHeader.className = 'flex items-baseline mb-6 gap-x-3 mt-12';
+
+                        if (activeMemberFilter !== 'all') {
+                            const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
+                            const memberColor = member ? member.color : '#fbbf24';
+                            channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4">一個月內發布過 <span style="color: ${memberColor}">${member ? member.name_jp : activeMemberFilter}</span> 剪輯的頻道</h2>`;
+                        } else {
+                            channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p>`;
+                        }
+                        channelListSection.appendChild(channelListHeader);
+
+                        // Calculate channel stats
+                        const channels = {};
+                        baseFilteredVideos.forEach(video => { if (!channels[video.channelId]) { channels[video.channelId] = { id: video.channelId, name: video.channelTitle, subscriberCount: video.subscriberCount, latestVideo: video, avatarUrl: video.channelAvatarUrl }; } });
+                        const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        const channelData = Object.values(channels).filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo).sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
+
+                        if (channelData.length > 0) {
+                            const channelListGrid = document.createElement('div');
+                            channelListGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+                            channelData.forEach(channel => channelListGrid.appendChild(createChannelGridCard(channel)));
+                            channelListSection.appendChild(channelListGrid);
+                        } else if (activeMemberFilter !== 'all') {
+                            channelListSection.innerHTML += `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到一個月內發布過「${activeMemberFilter}」剪輯的頻道。</p>`;
+                        }
+                        rightContent.appendChild(channelListSection);
+
                     } else {
-                        const listContainer = document.createElement('div');
-                        listContainer.className = 'space-y-3';
-                        const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
-                        const startIndex = (currentPage - 1) * itemsPerPage;
-                        const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
-                        paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
-                        viewContainer.appendChild(listContainer);
-                        if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
+                        // ============================================================
+                        // JP MODE: TAB LAYOUT (All / Video / Short / Channels)
+                        // ============================================================
+
+                        // Tab Navigation (Replacing Title Header)
+
+                        // Tab Navigation (Replacing Title Header)
+                        const tabContainer = document.createElement('div');
+                        tabContainer.className = "mb-6 border-b border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2";
+
+                        const tabsWrapper = document.createElement('div');
+                        tabsWrapper.className = "flex flex-wrap gap-2";
+                        // Note: Removed sticky for now as requested "replace title string". User asked "Tab at video card area top, report missing channel below".
+
+                        const isLock = isClassifying;
+                        const spinner = `<div class="spinner inline-block ml-1 w-3 h-3 border-2 border-gray-400 border-t-white rounded-full animate-spin"></div>`;
+
+                        const createTabBtn = (id, label, locked = false) => {
+                            const btn = document.createElement('button');
+                            const isActive = state.activeTab === id;
+                            // Square styling (rounded-none or sm)
+                            btn.className = `px-6 py-2 text-sm font-bold tracking-wide transition-all duration-200 border-b-2 ${isActive ? 'border-cyan-400 text-cyan-400 bg-gray-800/50' : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'}`;
+
+                            if (locked) {
+                                btn.disabled = true;
+                                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                                btn.innerHTML = `${label} ${spinner}`;
+                            } else {
+                                btn.textContent = label;
+                                btn.onclick = () => {
+                                    state.activeTab = id;
+                                    state.visibleCount = 24;
+                                    // Removed: state.activeChannelFilter = null; // Do NOT clear filter on tab switch
+                                    render();
+                                };
+                            }
+                            return btn;
+                        };
+
+                        tabsWrapper.appendChild(createTabBtn('all', '全部影片'));
+                        tabsWrapper.appendChild(createTabBtn('video', '只看影片', isLock));
+                        tabsWrapper.appendChild(createTabBtn('short', '只看Shorts', isLock));
+                        tabsWrapper.appendChild(createTabBtn('channels', '精華頻道列表'));
+
+                        tabContainer.appendChild(tabsWrapper);
+
+                        // JP Channel Filter Banner (Right Side)
+                        if (activeChannelFilter) {
+                            const filterBadge = document.createElement('div');
+                            filterBadge.className = "flex items-center space-x-2 bg-purple-900/80 text-purple-200 px-3 py-1.5 rounded-lg border border-purple-500/30 animate-fade-in";
+                            filterBadge.innerHTML = `
+                                <span class="text-xs md:text-sm">正在篩選：<strong class="text-white">${activeChannelFilter.name}</strong></span>
+                                <button id="jp-clear-filter-btn" class="hover:bg-purple-800 rounded-full p-0.5 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </button>
+                            `;
+                            // Add click listener immediately since element is created here
+                            // But we usually delegate or add after append. 
+                            // Adding to container first.
+                            filterBadge.querySelector('button').onclick = (e) => {
+                                e.stopPropagation();
+                                state.activeChannelFilter = null;
+                                render();
+                            };
+                            tabContainer.appendChild(filterBadge);
+                        }
+
+                        rightContent.appendChild(tabContainer);
+
+                        // Content Area
+                        // Content Area
+                        const contentSection = document.createElement('section');
+                        contentSection.style.minHeight = '720px';
+
+                        // Apply Channel Filter content filtering (JP Mode)
+                        // Note: filteredVideos ALREADY handles member/channel filtering.
+                        // But we want to ensure 'baseFilteredVideos' vs 'filteredVideos' usage is consistent.
+                        // 'filteredVideos' = base + type filter.
+                        // If activeChannelFilter is set, filteredVideos should already contain only that channel's videos.
+                        // Let's verify 'state.activeChannelFilter' usage in 'render()'s initial data prep.
+                        // ... I need to check the top of 'render()' function to ensure it uses activeChannelFilter.
+
+                        if (state.activeTab === 'channels') {
+                            // ... JP Channel Grid Logic (Same as before) ...
+                            const channelListSection = document.createElement('div');
+                            // Show count?
+                            const channelStatus = document.createElement('div');
+                            channelStatus.className = 'mb-4 text-sm text-gray-400 text-right';
+                            channelStatus.textContent = `顯示 ${activeMemberFilter !== 'all' ? '篩選後' : '所有'}頻道`;
+                            // channelListSection.appendChild(channelStatus); // Optional
+
+                            const channelGrid = document.createElement('div');
+                            channelGrid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
+
+                            const uniqueChannelIds = new Set(baseFilteredVideos.map(v => v.channelId));
+                            const channelsToDisplay = [];
+                            const processedChannels = new Set();
+                            baseFilteredVideos.forEach(video => {
+                                if (!processedChannels.has(video.channelId)) {
+                                    processedChannels.add(video.channelId);
+                                    channelsToDisplay.push({ id: video.channelId, name: video.channelTitle, avatarUrl: video.channelAvatarUrl, subscriberCount: video.subscriberCount, latestVideo: video });
+                                }
+                            });
+                            channelsToDisplay.forEach(channel => channelGrid.appendChild(createChannelGridCard(channel)));
+                            if (channelsToDisplay.length === 0) channelGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">沒有符合條件的頻道。</p>`;
+                            channelListSection.appendChild(channelGrid);
+                            contentSection.appendChild(channelListSection);
+
+                        } else {
+                            // ... JP Video Grid Logic (Infinite Scroll) ...
+                            let finalVideos = filteredVideos;
+                            if (state.activeTab === 'video') finalVideos = finalVideos.filter(v => v.videoType === 'video');
+                            if (state.activeTab === 'short') finalVideos = finalVideos.filter(v => v.videoType === 'short');
+
+                            if (finalVideos.length === 0) {
+                                contentSection.innerHTML = `<div class="text-center text-gray-400 py-20 bg-gray-800/30 rounded-lg"><p class="text-xl mb-2">沒有找到影片 (-ι_- )</p><p class="text-sm">試著切換篩選條件看看？</p></div>`;
+                            } else {
+                                const grid = document.createElement('div');
+                                const isShortsView = state.activeTab === 'short' || (state.activeVideoTypeFilter === 'short' && state.activeTab === 'all');
+                                let gridClasses = 'grid gap-6 ';
+                                if (isShortsView) { gridClasses += 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 view-mode-shorts-only'; }
+                                else { gridClasses += 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; }
+                                grid.className = gridClasses;
+
+                                const videosToShow = finalVideos.slice(0, state.visibleCount);
+                                videosToShow.forEach(video => grid.appendChild(createVideoCard(video)));
+
+                                if (state.visibleCount < finalVideos.length) {
+                                    const sentinel = document.createElement('div');
+                                    sentinel.className = 'col-span-full py-8 flex justify-center';
+                                    sentinel.innerHTML = `<div class="spinner w-8 h-8 border-4 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>`;
+                                    grid.appendChild(sentinel);
+                                }
+                                contentSection.appendChild(grid);
+                            }
+                        }
+                        rightContent.appendChild(contentSection);
                     }
-                    videosSection.appendChild(viewContainer);
-                    rightContent.appendChild(videosSection);
-                    const channelListSection = document.createElement('section');
-                    const channelListHeader = document.createElement('div');
-                    channelListHeader.className = 'flex items-baseline mb-6 gap-x-3';
-                    if (activeMemberFilter !== 'all') {
-                        const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
-                        const memberColor = member ? member.color : '#fbbf24';
-                        channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">一個月內發布過 <span style="color: ${memberColor}">${member ? member.name_jp : activeMemberFilter}</span> 剪輯的頻道</h2>`;
-                    } else {
-                        channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4 mt-12">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p>`;
-                    }
-                    channelListSection.appendChild(channelListHeader);
-                    const channels = {};
-                    videosForChannelList.forEach(video => { if (!channels[video.channelId]) { channels[video.channelId] = { id: video.channelId, name: video.channelTitle, subscriberCount: video.subscriberCount, latestVideo: video, avatarUrl: video.channelAvatarUrl }; } });
-                    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                    const channelData = Object.values(channels).filter(channel => new Date(channel.latestVideo.publishedAt) > thirtyDaysAgo).sort((a, b) => new Date(b.latestVideo.publishedAt) - new Date(a.latestVideo.publishedAt));
-                    if (channelData.length > 0) {
-                        const channelListGrid = document.createElement('div');
-                        channelListGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
-                        channelData.forEach(channel => channelListGrid.appendChild(createChannelGridCard(channel)));
-                        channelListSection.appendChild(channelListGrid);
-                    } else if (activeMemberFilter !== 'all') {
-                        channelListSection.innerHTML += `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到一個月內發布過「${activeMemberFilter}」剪輯的頻道。</p>`;
-                    }
-                    rightContent.appendChild(channelListSection);
                 }
             }
             mainGrid.appendChild(filterSection);
@@ -2176,19 +2340,61 @@
                 });
             });
 
+
+            // --- Infinite Scroll Listener ---
+            // Remove existing listener to prevent duplicates if re-setup
+            if (state.scrollHandler) { window.removeEventListener('scroll', state.scrollHandler); }
+            state.scrollHandler = () => {
+                // Infinite Scroll Trigger
+                const scrollHeight = document.documentElement.scrollHeight;
+                const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                const clientHeight = window.innerHeight;
+
+                if (scrollTop + clientHeight >= scrollHeight - 300) { // Trigger 300px before bottom
+                    // Only load more if not currently classifying (UX choice), or always? Always is fine.
+                    // Check if we have more videos to show
+                    // We need to access the CURRENT list length. 
+                    // Since 'render' is state-driven, we can just increment visibleCount if it's less than total.
+                    // Optimization: calculating total filtered length on every scroll is expensive?
+                    // Let's store 'currentFilteredLength' in state during render?
+                    // Simpler: Just increment. The render logic handles slice bounds.
+                    // Debounce?
+                    if (!state.isLoadingMore) {
+                        state.isLoadingMore = true;
+                        setTimeout(() => {
+                            state.visibleCount += 24;
+                            state.isLoadingMore = false;
+                            render(); // Re-render to show more
+                        }, 200);
+                    }
+                }
+
+                // Back-to-Top Button Visibility
+                const backToTopBtn = document.getElementById('back-to-top-btn');
+                if (backToTopBtn) {
+                    if (scrollTop > 500) { backToTopBtn.classList.remove('opacity-0', 'pointer-events-none'); }
+                    else { backToTopBtn.classList.add('opacity-0', 'pointer-events-none'); }
+                }
+            };
+            window.addEventListener('scroll', state.scrollHandler);
+
+            // --- Back to Top Button ---
+            const backToTopBtn = document.createElement('button');
+            backToTopBtn.id = 'back-to-top-btn';
+            backToTopBtn.className = "fixed bottom-24 right-8 p-3 rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-500/50 hover:bg-cyan-500 transition-all duration-300 opacity-0 pointer-events-none z-50";
+            backToTopBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>`;
+            backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.appendChild(backToTopBtn);
+
+
+
+            // --- Legacy Listeners Restored for CN Mode ---
             document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
             document.getElementById('view-all-btn')?.addEventListener('click', () => { state.activeView = 'all'; state.currentPage = 1; render(); });
-            document.querySelectorAll('#desktop-type-filters .type-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter; state.currentPage = 1; render(); }); });
-            const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
-            const mobileFilterMenu = document.getElementById('mobile-filter-menu');
-            if (mobileFilterToggle) {
-                mobileFilterToggle.addEventListener('click', (e) => { e.stopPropagation(); state.isFilterDropdownOpen = !state.isFilterDropdownOpen; render(); });
-                mobileFilterMenu.querySelectorAll('a').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); state.activeVideoTypeFilter = e.currentTarget.dataset.typeFilter; state.currentPage = 1; state.isFilterDropdownOpen = false; render(); }); });
-                document.addEventListener('click', (e) => { if (state.isFilterDropdownOpen && !mobileFilterMenu?.contains(e.target) && !mobileFilterToggle.contains(e.target)) { state.isFilterDropdownOpen = false; render(); } });
-            }
             document.querySelectorAll('.pagination-btn').forEach(btn => { btn.addEventListener('click', (e) => { const page = parseInt(e.currentTarget.dataset.page, 10); if (page && page !== state.currentPage) { state.currentPage = page; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); } }); });
+
             document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filterList = document.getElementById('member-filter-list-container'); const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 }; state.activeChannelFilter = null; state.activeMemberFilter = e.currentTarget.dataset.filter; state.currentPage = 1; render(() => { const newFilterList = document.getElementById('member-filter-list-container'); if (newFilterList) { newFilterList.scrollTop = scrollPosition.top; newFilterList.scrollLeft = scrollPosition.left; } window.scrollTo({ top: 0, behavior: 'smooth' }); }); }); });
-            document.querySelectorAll('.channel-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const button = e.currentTarget; state.activeMemberFilter = 'all'; state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName }; state.currentPage = 1; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); }); });
+            document.querySelectorAll('.channel-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const button = e.currentTarget; state.activeMemberFilter = 'all'; state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName }; state.currentPage = 1; if (state.activeLanguage === 'jp') { state.activeTab = 'all'; } render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); }); });
             document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => { state.activeChannelFilter = null; render(); });
             let lastWidth = window.innerWidth;
             window.addEventListener('resize', () => {
