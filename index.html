@@ -2161,9 +2161,9 @@
                                     </button>
                                     <div id="cn-filter-dropdown-menu" class="origin-top-left absolute left-0 mt-2 w-32 rounded-md shadow-lg bg-gray-700 ring-1 ring-black ring-opacity-5 z-20 ${state.isFilterDropdownOpen ? '' : 'hidden'}">
                                         <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="cn-filter-dropdown-btn">
-                                            <button onclick="selectCNFilter('all')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'all' ? 'bg-gray-600 text-white' : ''}" role="menuitem">全部</button>
-                                            <button onclick="selectCNFilter('video')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'video' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看影片</button>
-                                            <button onclick="selectCNFilter('short')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'short' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看Shorts</button>
+                                            <button onclick="selectCNFilter('all')" data-type="all" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'all' ? 'bg-gray-600 text-white' : ''}" role="menuitem">全部</button>
+                                            <button onclick="selectCNFilter('video')" data-type="video" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'video' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看影片</button>
+                                            <button onclick="selectCNFilter('short')" data-type="short" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'short' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看Shorts</button>
                                         </div>
                                     </div>
                                 </div>`;
