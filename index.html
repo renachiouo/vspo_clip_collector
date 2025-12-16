@@ -1151,6 +1151,37 @@
             showVersionUpdateModal(versions);
         };
 
+        window.toggleCNFilterDropdown = (e) => {
+            if (e) e.stopPropagation();
+            state.isFilterDropdownOpen = !state.isFilterDropdownOpen;
+            render();
+        };
+
+        window.selectCNFilter = (type) => {
+            state.activeVideoTypeFilter = type;
+            state.currentPage = 1;
+            state.isFilterDropdownOpen = false;
+            render();
+        };
+
+        // Window Event Listeners
+        window.addEventListener('click', () => {
+            if (state.isFilterDropdownOpen) {
+                state.isFilterDropdownOpen = false;
+                render();
+            }
+        });
+
+        // Initialize App
+        async function initializeApp() {
+            // This function will be called once the DOM is loaded
+            // It's a placeholder for future initialization logic
+            // For now, it just ensures the app starts correctly
+            console.log("App initialized.");
+            // You might want to call render() here or fetch initial data
+            // For this specific change, we just add the function definition.
+        }
+
         async function showRelatedClipsModal(videoId) {
             const modalId = 'related-clips-modal';
             const existingModal = document.getElementById(modalId);
@@ -2132,15 +2163,15 @@
                             const currentTypeLabel = activeVideoTypeFilter === 'all' ? '全部' : activeVideoTypeFilter === 'video' ? '只看影片' : '只看Shorts';
                             const mobileDropdown = `
                                 <div class="relative inline-block text-left md:hidden">
-                                    <button id="cn-filter-dropdown-btn" type="button" class="tab-btn inline-flex justify-center w-full shadow-sm bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500" ${isClassifying ? 'disabled' : ''}>
+                                    <button onclick="toggleCNFilterDropdown(event)" id="cn-filter-dropdown-btn" type="button" class="tab-btn inline-flex justify-center w-full shadow-sm bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500" ${isClassifying ? 'disabled' : ''}>
                                         ${currentTypeLabel}
                                         <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                                     </button>
-                                    <div id="cn-filter-dropdown-menu" class="origin-top-left absolute left-0 mt-2 w-32 rounded-md shadow-lg bg-gray-700 ring-1 ring-black ring-opacity-5 z-20 hidden">
+                                    <div id="cn-filter-dropdown-menu" class="origin-top-left absolute left-0 mt-2 w-32 rounded-md shadow-lg bg-gray-700 ring-1 ring-black ring-opacity-5 z-20 ${state.isFilterDropdownOpen ? '' : 'hidden'}">
                                         <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="cn-filter-dropdown-btn">
-                                            <button class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'all' ? 'bg-gray-600 text-white' : ''}" data-type="all" role="menuitem">全部</button>
-                                            <button class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'video' ? 'bg-gray-600 text-white' : ''}" data-type="video" role="menuitem">只看影片</button>
-                                            <button class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'short' ? 'bg-gray-600 text-white' : ''}" data-type="short" role="menuitem">只看Shorts</button>
+                                            <button onclick="selectCNFilter('all')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'all' ? 'bg-gray-600 text-white' : ''}" role="menuitem">全部</button>
+                                            <button onclick="selectCNFilter('video')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'video' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看影片</button>
+                                            <button onclick="selectCNFilter('short')" class="type-filter-btn w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 hover:text-white ${activeVideoTypeFilter === 'short' ? 'bg-gray-600 text-white' : ''}" role="menuitem">只看Shorts</button>
                                         </div>
                                     </div>
                                 </div>`;
@@ -2218,13 +2249,15 @@
                         // ============================================================
 
                         // Tab Navigation (Replacing Title Header)
-
-                        // Tab Navigation (Replacing Title Header)
                         const tabContainer = document.createElement('div');
                         tabContainer.className = "mb-6 border-b border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2";
 
                         const tabsWrapper = document.createElement('div');
-                        tabsWrapper.className = "flex flex-wrap gap-2";
+                        // Fix for Mobile Tab Wrapping: Use flex-nowrap + overflow-x-auto, or adjust sizing.
+                        // User request: "Adjust width to fit page width", so flex-1 might split space, but labels are long.
+                        // Better approach: flex-nowrap + overflow-x-auto (horizontal scroll if really small) OR flex-shrink.
+                        // Given standard mobile 360px+, 4 tabs should fit if padding is small.
+                        tabsWrapper.className = "flex flex-nowrap md:flex-wrap gap-1 md:gap-2 overflow-x-auto no-scrollbar w-full md:w-auto";
                         // Note: Removed sticky for now as requested "replace title string". User asked "Tab at video card area top, report missing channel below".
 
                         const isLock = isClassifying;
@@ -2234,7 +2267,8 @@
                             const btn = document.createElement('button');
                             const isActive = state.activeTab === id;
                             // Square styling (rounded-none or sm)
-                            btn.className = `px-6 py-2 text-sm font-bold tracking-wide transition-all duration-200 border-b-2 ${isActive ? 'border-cyan-400 text-cyan-400 bg-gray-800/50' : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'}`;
+                            // Reduced padding for mobile (px-3) vs desktop (md:px-6) to fit 4 items.
+                            btn.className = `whitespace-nowrap flex-shrink-0 px-3 md:px-6 py-2 text-sm font-bold tracking-wide transition-all duration-200 border-b-2 ${isActive ? 'border-cyan-400 text-cyan-400 bg-gray-800/50' : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'}`;
 
                             if (locked) {
                                 btn.disabled = true;
