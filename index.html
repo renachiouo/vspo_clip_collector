@@ -1945,7 +1945,7 @@
                 card.querySelector('.related-clips-btn').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    showRelatedClipsModal(video.originalStreamInfo);
+                    showRelatedClipsModal(video.id);
                 });
             }
             return card;
