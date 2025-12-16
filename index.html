@@ -2569,6 +2569,7 @@
                         try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); }
                         catch (e) { console.error(`解析 'originalStreamInfo' 失敗 (Video ID: ${v.id}):`, e); v.originalStreamInfo = null; }
                     }
+                    v.videoType = v.videoType || v.type || (v.durationMinutes <= 1.05 ? 'short' : 'video');
                     return v;
                 });
 
