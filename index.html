@@ -868,6 +868,16 @@
             pointer-events: none;
         }
 
+        /* Live Stream Bar Styles */
+        .live-stream-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .live-stream-container::-webkit-scrollbar {
+            display: none;
+        }
+
         /* --- END: 公告欄樣式 --- */
     </style>
 </head>
@@ -972,7 +982,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V12.8';
+        const CURRENT_APP_VERSION = 'V12.9';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -984,6 +994,9 @@
             isLoading: true,
             isClassifying: false,
             needsClassification: false,
+            isUpdatingLive: false,
+            liveLastUpdated: 0, // NEW: Track live data timestamp
+            livePollingId: null, // NEW: Polling ID for live status
             classificationIntervalId: null,
             lastUpdated: null,
             apiError: null,
@@ -1006,6 +1019,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V12.9': {
+                title: 'V12.9 誰在直播中！',
+                date: '2025-12-18',
+                features: [
+                    '【功能新增】新增能查看直播中成員的欄位',
+                ]
+            },
             'V12.8': {
                 title: 'V12.8 系統優化',
                 date: '2025-12-17',
@@ -1311,6 +1331,7 @@
                     <div class="flex gap-2">
                          <button class="admin-btn-refresh bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors" data-lang="cn">立即更新中文資料</button>
                          <button class="admin-btn-refresh bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition-colors" data-lang="jp">立即更新日文資料</button>
+                         <button class="admin-btn-trigger-live bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"><span class="animate-pulse">🔴</span> 檢查直播狀態</button>
                         <button id="close-admin-modal-btn" class="p-2 rounded-full hover:bg-gray-600 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
@@ -1520,6 +1541,29 @@
                     }
                 });
             });
+
+            // Trigger Live Check Button
+            const triggerLiveBtn = modal.querySelector('.admin-btn-trigger-live');
+            if (triggerLiveBtn) {
+                triggerLiveBtn.addEventListener('click', async () => {
+                    if (!confirm('確定要立即觸發直播狀態檢查嗎？')) return;
+                    const originalText = triggerLiveBtn.innerHTML;
+                    triggerLiveBtn.innerText = '檢查中...';
+                    triggerLiveBtn.disabled = true;
+                    try {
+                        await fetchApi('admin/manage', {
+                            method: 'POST',
+                            body: { action: 'trigger_live_check', password }
+                        });
+                        alert('直播狀態檢查已觸發，請稍後查看首頁。');
+                    } catch (error) {
+                        alert(`檢查失敗: ${error.message}`);
+                    } finally {
+                        triggerLiveBtn.innerHTML = originalText;
+                        triggerLiveBtn.disabled = false;
+                    }
+                });
+            }
 
             // 公告儲存按鈕事件
             const saveAnnouncementBtn = modal.querySelector('#save-announcement-btn');
@@ -2107,6 +2151,83 @@
                 </div>
             </div>`;
 
+
+            let liveBarEl = null;
+
+            // Check if live data is stale (> 15 mins)
+            const isLiveStale = (Date.now() - (state.liveLastUpdated || 0)) > 900000;
+
+            // Show Live Bar if:
+            // 1. Updating AND Stale -> Show Loading (Hide old data)
+            // 2. Not Updating OR Not Stale -> Show Streams if exist
+            // 3. Updating BUT Not Stale -> Show Streams (Loading in background, keep old data visible)
+
+            const showLoading = state.isUpdatingLive && isLiveStale;
+            const showStreams = (state.liveStreams && state.liveStreams.length > 0) && !showLoading;
+
+            if (showLoading || showStreams) {
+                liveBarEl = document.createElement('div');
+                liveBarEl.className = "container mx-auto px-4 mb-8 -mt-4 animate-fade-in";
+
+                let contentHTML = '';
+
+                if (showLoading) {
+                    // Updating State UI (Yellow)
+                    contentHTML = `
+                    <div class="bg-gray-800/60 backdrop-blur border border-yellow-500/30 rounded-xl p-3 flex items-center justify-center relative shadow-lg shadow-yellow-900/10 h-[72px]">
+                         <div class="flex items-center space-x-3">
+                            <svg class="animate-spin h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="font-bold text-yellow-400 tracking-wider text-sm">正在更新直播狀態...</span>
+                        </div>
+                    </div>`;
+                } else {
+                    // Normal Live List (Red)
+                    contentHTML = `
+                    <div class="bg-gray-800/60 backdrop-blur border border-red-500/30 rounded-xl p-3 flex items-center overflow-hidden relative shadow-lg shadow-red-900/10">
+                        <div class="flex-shrink-0 flex items-center pr-4 border-r border-gray-700 mr-4 z-10 bg-transparent">
+                            <span class="relative flex h-3 w-3 mr-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                            <span class="font-bold text-red-400 tracking-wider text-sm">LIVE NOW</span>
+                        </div>
+                        
+                        <div id="live-stream-bar" class="live-stream-container flex items-center gap-6 overflow-x-auto overflow-y-hidden flex-grow mask-gradient-right pb-2 pt-2 pl-1 min-w-0 max-w-full">
+                            ${state.liveStreams.map(s => `
+                                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : ''}">
+                                    <div class="relative">
+                                        <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
+                                        <img src="${s.avatarUrl}" alt="${s.memberName}" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
+                                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
+                                        ${s.platform === 'twitch' ? '<div class="absolute -top-1 -right-1 z-20 bg-purple-600 rounded-full w-4 h-4 flex items-center justify-center border-2 border-gray-900"><svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.126 5.79.257 1.303.856 2.378 1.411 3.251.139.219.27.425.323.515a.333.333 0 0 1-.285.502s-4.043.003-4.043-.003c0 2.226-2.186 2.22-2.186 2.22-3.151.782-5.419-2.18-5.419-2.18C.198 12.016 0 7.846 0 7.846c0-4.026 3.978-5.845 8.051-5.847z"/></svg></div>' : ''}
+                                    </div>
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                liveBarEl.innerHTML = contentHTML;
+
+                // Add JS only if not loading
+                if (!showLoading) {
+                    setTimeout(() => {
+                        const container = liveBarEl.querySelector('.live-stream-container');
+                        if (container) {
+                            container.addEventListener('wheel', (e) => {
+                                if (e.deltaY !== 0) {
+                                    e.preventDefault();
+                                    container.scrollLeft += e.deltaY;
+                                }
+                            }, { passive: false });
+                        }
+                    }, 0);
+                }
+            }
+
             const mainGrid = document.createElement('div');
             mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
 
@@ -2128,16 +2249,16 @@
                 rightContent.innerHTML = createErrorDisplay(apiError);
             } else {
                 const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
-                console.log(`[Rentner Debug] All: ${allVideos.length}, Visible (Blacklist check): ${visibleVideos.length}`);
+                console.log(`[Rentner Debug]All: ${allVideos.length}, Visible(Blacklist check): ${visibleVideos.length} `);
                 let baseFilteredVideos;
                 if (activeChannelFilter) { baseFilteredVideos = visibleVideos.filter(video => video.channelId === activeChannelFilter.id); }
                 else if (activeMemberFilter !== 'all') { const filterKeyword = activeMemberFilter.toLowerCase(); baseFilteredVideos = visibleVideos.filter(video => (video.searchableText || '').includes(filterKeyword)); }
                 else { baseFilteredVideos = visibleVideos; }
-                console.log(`[Render Debug] Base Filtered (Member/Channel): ${baseFilteredVideos.length}`);
+                console.log(`[Render Debug] Base Filtered(Member / Channel): ${baseFilteredVideos.length} `);
                 let filteredVideos;
                 if (!isClassifying && activeVideoTypeFilter !== 'all') { filteredVideos = baseFilteredVideos.filter(v => v.videoType === activeVideoTypeFilter); }
                 else { filteredVideos = baseFilteredVideos; }
-                console.log(`[Render Debug] Final Filtered (Type): ${filteredVideos.length}`);
+                console.log(`[Render Debug] Final Filtered(Type): ${filteredVideos.length} `);
                 const videosForChannelList = baseFilteredVideos;
                 if (filteredVideos.length === 0 && (activeMemberFilter !== 'all' || activeChannelFilter || activeVideoTypeFilter !== 'all')) {
                     const filterName = activeChannelFilter ? activeChannelFilter.name : activeMemberFilter;
@@ -2252,7 +2373,7 @@
                         if (activeMemberFilter !== 'all') {
                             const member = allMembers.find(m => m.filter_keyword === activeMemberFilter);
                             const memberColor = member ? member.color : '#fbbf24';
-                            channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4">一個月內發布過 <span style="color: ${memberColor}">${member ? member.name_jp : activeMemberFilter}</span> 剪輯的頻道</h2>`;
+                            channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4">一個月內發布過<span style="color: ${memberColor}">${member ? member.name_jp : activeMemberFilter}</span>剪輯的頻道</h2>`;
                         } else {
                             channelListHeader.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-purple-400 pl-4">精華頻道列表</h2><p class="text-gray-500 text-sm">僅列出30天內有發布新影片之頻道</p>`;
                         }
@@ -2366,7 +2487,7 @@
                             // Show count?
                             const channelStatus = document.createElement('div');
                             channelStatus.className = 'mb-4 text-sm text-gray-400 text-right';
-                            channelStatus.textContent = `顯示 ${activeMemberFilter !== 'all' ? '篩選後' : '所有'}頻道`;
+                            channelStatus.textContent = `顯示 ${activeMemberFilter !== 'all' ? '篩選後' : '所有'} 頻道`;
                             // channelListSection.appendChild(channelStatus); // Optional
 
                             const channelGrid = document.createElement('div');
@@ -2382,7 +2503,7 @@
                                 }
                             });
                             channelsToDisplay.forEach(channel => channelGrid.appendChild(createChannelGridCard(channel)));
-                            if (channelsToDisplay.length === 0) channelGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">沒有符合條件的頻道。</p>`;
+                            if (channelsToDisplay.length === 0) channelGrid.innerHTML = `< p class="col-span-full text-center text-gray-500 py-8" > 沒有符合條件的頻道。</p > `;
                             channelListSection.appendChild(channelGrid);
                             contentSection.appendChild(channelListSection);
 
@@ -2422,6 +2543,7 @@
             mainGrid.appendChild(rightContent);
             appContainer.appendChild(header);
             appContainer.appendChild(topBar);
+            if (liveBarEl) appContainer.appendChild(liveBarEl);
             appContainer.appendChild(mainGrid);
             setupEventListeners();
             if (onRenderComplete) onRenderComplete();
@@ -2598,11 +2720,50 @@
             }, 5000); // 增加間隔到 5s 避免過於頻繁
         }
 
+        function startLiveStatusPolling() {
+            if (state.livePollingId) clearInterval(state.livePollingId);
+            console.log("啟動直播狀態輪詢...");
+            state.livePollingId = setInterval(async () => {
+                try {
+                    const res = await fetchApi('live');
+                    if (res.success) {
+                        state.liveStreams = res.streams || [];
+                        state.isUpdatingLive = res.isUpdating || false;
+                        state.liveLastUpdated = res.timestamp || 0;
+                        render(); // Live bar will update automatically based on flags
+
+                        if (!state.isUpdatingLive) {
+                            console.log("直播狀態更新完成！停止輪詢。");
+                            clearInterval(state.livePollingId);
+                            state.livePollingId = null;
+                        }
+                    }
+                } catch (e) { console.warn("直播狀態輪詢失敗:", e); }
+            }, 5000);
+        }
+
         async function initializeApp(force = false, password = '') {
             state.activeLanguage = localStorage.getItem(LANGUAGE_KEY) || 'cn';
             state.blacklist = getBlacklist();
             state.isLoading = true;
+            state.liveStreams = [];
             render();
+
+            // Fetch Live Status Background
+            // Fetch Live Status Background
+            fetchApi('live').then(res => {
+                if (res.success) {
+                    state.liveStreams = res.streams || [];
+                    state.isUpdatingLive = res.isUpdating || false;
+                    state.liveLastUpdated = res.timestamp || 0;
+                    render();
+
+                    if (state.isUpdatingLive) {
+                        startLiveStatusPolling();
+                    }
+                }
+            }).catch(e => console.warn('Live status fetch failed:', e));
+
 
             const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY);
             if (lastSeenVersion !== CURRENT_APP_VERSION) {
@@ -2633,7 +2794,7 @@
                 const videos = dataPackage.videos.map(v => {
                     if (v.originalStreamInfo && typeof v.originalStreamInfo === 'string') {
                         try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); }
-                        catch (e) { console.error(`解析 'originalStreamInfo' 失敗 (Video ID: ${v.id}):`, e); v.originalStreamInfo = null; }
+                        catch (e) { console.error(`解析 'originalStreamInfo' 失敗(Video ID: ${v.id}): `, e); v.originalStreamInfo = null; }
                     }
                     v.videoType = v.videoType || v.type || (v.durationMinutes <= 1.05 ? 'short' : 'video');
                     return v;
@@ -2652,12 +2813,12 @@
                 const closeBtn = document.getElementById('close-announcement-btn');
 
                 if (announcement && announcement.active) {
-                    const dismissedKey = `vspo_announcement_dismissed_${announcement.timestamp}`;
+                    const dismissedKey = `vspo_announcement_dismissed_${announcement.timestamp} `;
                     const isDismissed = localStorage.getItem(dismissedKey);
 
                     if (!isDismissed) {
                         bannerText.textContent = announcement.content;
-                        banner.className = `type-${announcement.type}`; // 設定類型樣式
+                        banner.className = `type - ${announcement.type} `; // 設定類型樣式
                         banner.classList.add('visible');
 
                         closeBtn.onclick = () => {
