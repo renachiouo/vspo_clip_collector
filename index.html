@@ -2157,10 +2157,7 @@
             // Check if live data is stale (> 15 mins)
             const isLiveStale = (Date.now() - (state.liveLastUpdated || 0)) > 900000;
 
-            // Show Live Bar if:
-            // 1. Updating AND Stale -> Show Loading (Hide old data)
-            // 2. Not Updating OR Not Stale -> Show Streams if exist
-            // 3. Updating BUT Not Stale -> Show Streams (Loading in background, keep old data visible)
+
 
             const showLoading = state.isUpdatingLive && isLiveStale;
             const showStreams = (state.liveStreams && state.liveStreams.length > 0) && !showLoading;
@@ -2404,13 +2401,7 @@
                         const tabContainer = document.createElement('div');
                         tabContainer.className = "mb-6 border-b border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2";
 
-                        const tabsWrapper = document.createElement('div');
-                        // Fix for Mobile Tab Wrapping: Use flex-nowrap + overflow-x-auto, or adjust sizing.
-                        // User request: "Adjust width to fit page width", so flex-1 might split space, but labels are long.
-                        // Better approach: flex-nowrap + overflow-x-auto (horizontal scroll if really small) OR flex-shrink.
-                        // Given standard mobile 360px+, 4 tabs should fit if padding is small.
                         tabsWrapper.className = "flex flex-nowrap md:flex-wrap gap-1 md:gap-2 overflow-x-auto no-scrollbar w-full md:w-auto";
-                        // Note: Removed sticky for now as requested "replace title string". User asked "Tab at video card area top, report missing channel below".
 
                         const isLock = isClassifying;
                         const spinner = `<div class="spinner inline-block ml-1 w-3 h-3 border-2 border-gray-400 border-t-white rounded-full animate-spin"></div>`;
@@ -2474,13 +2465,6 @@
                         contentSection.style.minHeight = '720px';
 
                         // Apply Channel Filter content filtering (JP Mode)
-                        // Note: filteredVideos ALREADY handles member/channel filtering.
-                        // But we want to ensure 'baseFilteredVideos' vs 'filteredVideos' usage is consistent.
-                        // 'filteredVideos' = base + type filter.
-                        // If activeChannelFilter is set, filteredVideos should already contain only that channel's videos.
-                        // Let's verify 'state.activeChannelFilter' usage in 'render()'s initial data prep.
-                        // ... I need to check the top of 'render()' function to ensure it uses activeChannelFilter.
-
                         if (state.activeTab === 'channels') {
                             // ... JP Channel Grid Logic (Same as before) ...
                             const channelListSection = document.createElement('div');
@@ -2580,14 +2564,6 @@
                 const clientHeight = window.innerHeight;
 
                 if (scrollTop + clientHeight >= scrollHeight - 300) { // Trigger 300px before bottom
-                    // Only load more if not currently classifying (UX choice), or always? Always is fine.
-                    // Check if we have more videos to show
-                    // We need to access the CURRENT list length. 
-                    // Since 'render' is state-driven, we can just increment visibleCount if it's less than total.
-                    // Optimization: calculating total filtered length on every scroll is expensive?
-                    // Let's store 'currentFilteredLength' in state during render?
-                    // Simpler: Just increment. The render logic handles slice bounds.
-                    // Debounce?
                     if (!state.isLoadingMore) {
                         state.isLoadingMore = true;
                         setTimeout(() => {
@@ -2608,10 +2584,6 @@
             window.addEventListener('scroll', state.scrollHandler);
 
             // --- Back to Top Button ---
-            // Only create if not exists (though render rebuilds appContainer, backToTop is in body? No, previous code appended to body)
-            // Wait, previous code appended to document.body (Line 2455).
-            // render() runs repeatedly but body isn't cleared.
-            // So we are creating MULTIPLE back-to-top buttons!
             if (!document.getElementById('back-to-top-btn')) {
                 const backToTopBtn = document.createElement('button');
                 backToTopBtn.id = 'back-to-top-btn';
@@ -2648,16 +2620,6 @@
                 // Filter Button logic
                 const btn = e.target.closest('.type-filter-btn');
                 if (btn && !btn.disabled) {
-                    // Prevent double firing if onclick is present on element
-                    // But current HTML uses onclick... we can rely on dataset here or onclick.
-                    // If we use onclick in HTML, we shouldn't handle logic here OR remove onclick from HTML.
-                    // User's fix in Step 4061 added data-type back.
-                    // Let's rely on this delegated listener and REMOVE onclick from HTML? 
-                    // OR simple: check if state already matches?
-
-                    // Actually, the previous bug was global listener setting undefined.
-                    // Now it sets valid value.
-                    // We can keep both but it causes double render.
                     // Best to rely on THIS delegated listener for cleanness, but removing onclick from HTML is extra work.
                     // Let's just set the state.
 
