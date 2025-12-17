@@ -1882,7 +1882,7 @@
                     <span class="truncate">${formatNumber(video.viewCount)} 次觀看</span>
                     <div class="flex items-center gap-x-2">
                         ${relatedClipsButton}
-                        <span class="flex-shrink-0">${timeAgo(video.publishedAt)}</span>
+                        <span class="flex-shrink-0" title="${new Date(video.publishedAt).toLocaleString('zh-TW')}">${timeAgo(video.publishedAt)}</span>
                     </div>
                 </div>
             </div>`;
@@ -1927,7 +1927,7 @@
                 </a>
                 <div class="flex justify-between items-center text-xs text-gray-500 mt-2">
                     <span>${formatNumber(video.viewCount)} 次觀看</span>
-                    <span>${timeAgo(video.publishedAt)}</span>
+                    <span title="${new Date(video.publishedAt).toLocaleString('zh-TW')}">${timeAgo(video.publishedAt)}</span>
                 </div>
             </div>
             ${relatedClipsButton}`;
