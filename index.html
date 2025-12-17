@@ -2175,6 +2175,28 @@
                             </div>`;
                         })();
                         videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
+
+                        // --- Restore Channel Filter Badge for CN Mode ---
+                        if (activeChannelFilter) {
+                            const badgeContainer = document.createElement('div');
+                            badgeContainer.className = "mb-4 animate-fade-in";
+                            badgeContainer.innerHTML = `
+                                <div class="inline-flex items-center space-x-2 bg-purple-900/80 text-purple-200 px-4 py-2 rounded-lg border border-purple-500/30">
+                                    <span>正在篩選：<strong class="text-white">${activeChannelFilter.name}</strong></span>
+                                    <button id="cn-clear-filter-btn" class="hover:bg-purple-800 rounded-full p-1 transition-colors text-gray-300 hover:text-white" title="清除篩選">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                </div>`;
+                            videosSection.appendChild(badgeContainer);
+
+                            setTimeout(() => {
+                                document.getElementById('cn-clear-filter-btn')?.addEventListener('click', () => {
+                                    state.activeChannelFilter = null;
+                                    render();
+                                });
+                            }, 0);
+                        }
+
                         videosSection.appendChild(videosHeader);
 
                         // Video Grid
@@ -2447,14 +2469,33 @@
             window.addEventListener('scroll', state.scrollHandler);
 
             // --- Back to Top Button ---
-            const backToTopBtn = document.createElement('button');
-            backToTopBtn.id = 'back-to-top-btn';
-            backToTopBtn.className = "fixed bottom-24 right-8 p-3 rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-500/50 hover:bg-cyan-500 transition-all duration-300 opacity-0 pointer-events-none z-50";
-            backToTopBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>`;
-            backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.body.appendChild(backToTopBtn);
+            // Only create if not exists (though render rebuilds appContainer, backToTop is in body? No, previous code appended to body)
+            // Wait, previous code appended to document.body (Line 2455).
+            // render() runs repeatedly but body isn't cleared.
+            // So we are creating MULTIPLE back-to-top buttons!
+            if (!document.getElementById('back-to-top-btn')) {
+                const backToTopBtn = document.createElement('button');
+                backToTopBtn.id = 'back-to-top-btn';
+                backToTopBtn.className = "fixed bottom-24 right-8 p-3 rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-500/50 hover:bg-cyan-500 transition-all duration-300 opacity-0 pointer-events-none z-50";
+                backToTopBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>`;
+                backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.body.appendChild(backToTopBtn);
+            }
 
+            // --- Legacy Listeners Restored for CN Mode (Attached to specific elements recreated by render) ---
+            document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
+            document.getElementById('view-all-btn')?.addEventListener('click', () => { state.activeView = 'all'; state.currentPage = 1; render(); });
+            document.querySelectorAll('.pagination-btn').forEach(btn => { btn.addEventListener('click', (e) => { const page = parseInt(e.currentTarget.dataset.page, 10); if (page && page !== state.currentPage) { state.currentPage = page; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); } }); });
 
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filterList = document.getElementById('member-filter-list-container'); const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 }; state.activeChannelFilter = null; state.activeMemberFilter = e.currentTarget.dataset.filter; state.currentPage = 1; render(() => { const newFilterList = document.getElementById('member-filter-list-container'); if (newFilterList) { newFilterList.scrollTop = scrollPosition.top; newFilterList.scrollLeft = scrollPosition.left; } window.scrollTo({ top: 0, behavior: 'smooth' }); }); }); });
+            document.querySelectorAll('.channel-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const button = e.currentTarget; state.activeMemberFilter = 'all'; state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName }; state.currentPage = 1; if (state.activeLanguage === 'jp') { state.activeTab = 'all'; } render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); }); });
+            document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => { state.activeChannelFilter = null; render(); });
+        }
+
+        // Global Listeners (Run Once)
+        function setupGlobalListeners() {
+            if (window.vspoGlobalListenersSetup) return;
+            window.vspoGlobalListenersSetup = true;
 
             // --- Video Type Filters & Mobile Dropdown (Delegated) ---
             document.addEventListener('click', (e) => {
@@ -2468,12 +2509,27 @@
                 // Filter Button logic
                 const btn = e.target.closest('.type-filter-btn');
                 if (btn && !btn.disabled) {
-                    state.activeVideoTypeFilter = btn.dataset.type;
-                    state.currentPage = 1;
-                    if (state.activeLanguage === 'jp') { state.activeTab = btn.dataset.type; }
-                    render(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-                    // Helper to close dropdown if it was clicked inside
-                    document.getElementById('cn-filter-dropdown-menu')?.classList.add('hidden');
+                    // Prevent double firing if onclick is present on element
+                    // But current HTML uses onclick... we can rely on dataset here or onclick.
+                    // If we use onclick in HTML, we shouldn't handle logic here OR remove onclick from HTML.
+                    // User's fix in Step 4061 added data-type back.
+                    // Let's rely on this delegated listener and REMOVE onclick from HTML? 
+                    // OR simple: check if state already matches?
+
+                    // Actually, the previous bug was global listener setting undefined.
+                    // Now it sets valid value.
+                    // We can keep both but it causes double render.
+                    // Best to rely on THIS delegated listener for cleanness, but removing onclick from HTML is extra work.
+                    // Let's just set the state.
+
+                    const type = btn.dataset.type;
+                    if (type) {
+                        state.activeVideoTypeFilter = type;
+                        state.currentPage = 1;
+                        if (state.activeLanguage === 'jp') { state.activeTab = type; }
+                        render(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+                        document.getElementById('cn-filter-dropdown-menu')?.classList.add('hidden');
+                    }
                     return;
                 }
 
@@ -2483,14 +2539,6 @@
                 }
             });
 
-            // --- Legacy Listeners Restored for CN Mode ---
-            document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
-            document.getElementById('view-all-btn')?.addEventListener('click', () => { state.activeView = 'all'; state.currentPage = 1; render(); });
-            document.querySelectorAll('.pagination-btn').forEach(btn => { btn.addEventListener('click', (e) => { const page = parseInt(e.currentTarget.dataset.page, 10); if (page && page !== state.currentPage) { state.currentPage = page; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); } }); });
-
-            document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filterList = document.getElementById('member-filter-list-container'); const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 }; state.activeChannelFilter = null; state.activeMemberFilter = e.currentTarget.dataset.filter; state.currentPage = 1; render(() => { const newFilterList = document.getElementById('member-filter-list-container'); if (newFilterList) { newFilterList.scrollTop = scrollPosition.top; newFilterList.scrollLeft = scrollPosition.left; } window.scrollTo({ top: 0, behavior: 'smooth' }); }); }); });
-            document.querySelectorAll('.channel-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const button = e.currentTarget; state.activeMemberFilter = 'all'; state.activeChannelFilter = { id: button.dataset.channelId, name: button.dataset.channelName }; state.currentPage = 1; if (state.activeLanguage === 'jp') { state.activeTab = 'all'; } render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); }); });
-            document.getElementById('clear-channel-filter-btn')?.addEventListener('click', () => { state.activeChannelFilter = null; render(); });
             let lastWidth = window.innerWidth;
             window.addEventListener('resize', () => {
                 const currentWidth = window.innerWidth;
@@ -2499,6 +2547,7 @@
                 lastWidth = currentWidth;
             });
         }
+
 
         function startClassificationPolling() {
             if (state.classificationIntervalId) { clearInterval(state.classificationIntervalId); }
@@ -2629,6 +2678,7 @@
                 render();
                 setTimeout(() => performUpdateCheck(false), 2000);
             }
+            setupGlobalListeners();
         }
 
         function setupSecretTrigger() {
