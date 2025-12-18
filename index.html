@@ -2194,12 +2194,11 @@
                         
                         <div id="live-stream-bar" class="live-stream-container flex items-center gap-6 overflow-x-auto overflow-y-hidden flex-grow mask-gradient-right pb-2 pt-2 pl-1 min-w-0 max-w-full">
                             ${state.liveStreams.map(s => `
-                                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : ''}">
+                                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : s.platform === 'bilibili' ? ' (Bilibili)' : ''}">
                                     <div class="relative">
-                                        <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
-                                        <img src="${s.avatarUrl}" alt="${s.memberName}" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
-                                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
-
+                                        <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
+                                        <img src="${s.avatarUrl}" alt="${s.memberName}" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
+                                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
                                     </div>
                                 </a>
                             `).join('')}
