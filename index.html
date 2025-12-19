@@ -2181,7 +2181,7 @@
                         </div>
                     </div>`;
                 } else {
-                    // Normal Live List (Red)
+                    // Normal Live List (Red) with Floating Navigation Arrows
                     contentHTML = `
                     <div class="bg-gray-800/60 backdrop-blur border border-red-500/30 rounded-xl p-3 flex items-center overflow-hidden relative shadow-lg shadow-red-900/10">
                         <div class="flex-shrink-0 flex items-center pr-4 border-r border-gray-700 mr-4 z-10 bg-transparent">
@@ -2192,16 +2192,32 @@
                             <span class="font-bold text-red-400 tracking-wider text-sm">LIVE NOW</span>
                         </div>
                         
-                        <div id="live-stream-bar" class="live-stream-container flex items-center gap-6 overflow-x-auto overflow-y-hidden flex-grow mask-gradient-right pb-2 pt-2 pl-1 min-w-0 max-w-full">
-                            ${state.liveStreams.map(s => `
-                                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : s.platform === 'bilibili' ? ' (Bilibili)' : ''}">
-                                    <div class="relative">
-                                        <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
-                                        <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
-                                        <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
-                                    </div>
-                                </a>
-                            `).join('')}
+                        <div class="relative flex-grow min-w-0 group/scroll">
+                             <!-- Left Navigation Arrow -->
+                            <button id="scroll-left" class="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/80 text-white rounded-full p-1 opacity-0 pointer-events-none transition-all duration-300 transform -translate-x-2 group-hover/scroll:translate-x-0 backdrop-blur-sm border border-white/10 shadow-lg" aria-label="Scroll Left">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+
+                            <div id="live-stream-bar" class="live-stream-container flex items-center gap-6 overflow-x-auto overflow-y-hidden mask-gradient-right pb-2 pt-2 pl-1 scroll-smooth">
+                                ${state.liveStreams.map(s => `
+                                    <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : s.platform === 'bilibili' ? ' (Bilibili)' : ''}">
+                                        <div class="relative">
+                                            <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
+                                            <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
+                                            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
+                                        </div>
+                                    </a>
+                                `).join('')}
+                            </div>
+
+                             <!-- Right Navigation Arrow -->
+                            <button id="scroll-right" class="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/80 text-white rounded-full p-1 opacity-0 pointer-events-none transition-all duration-300 transform translate-x-2 group-hover/scroll:translate-x-0 backdrop-blur-sm border border-white/10 shadow-lg" aria-label="Scroll Right">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
                         </div>
                     </div>`;
                 }
@@ -2212,13 +2228,55 @@
                 if (!showLoading) {
                     setTimeout(() => {
                         const container = liveBarEl.querySelector('.live-stream-container');
-                        if (container) {
+                        const btnLeft = liveBarEl.querySelector('#scroll-left');
+                        const btnRight = liveBarEl.querySelector('#scroll-right');
+
+                        if (container && btnLeft && btnRight) {
+                            // Scroll Wheel Logic
                             container.addEventListener('wheel', (e) => {
                                 if (e.deltaY !== 0) {
                                     e.preventDefault();
                                     container.scrollLeft += e.deltaY;
                                 }
                             }, { passive: false });
+
+                            // Arrow Click Logic
+                            const scrollAmount = 300;
+                            btnLeft.addEventListener('click', () => container.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
+                            btnRight.addEventListener('click', () => container.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
+
+                            // Update Indicators State
+                            const updateIndicators = () => {
+                                const isScrollable = container.scrollWidth > container.clientWidth;
+                                const atStart = container.scrollLeft <= 0;
+                                const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1; // Tolerance
+
+                                // Left Button: Show if NOT at start AND scrollable
+                                if (!atStart && isScrollable) {
+                                    btnLeft.classList.remove('opacity-0', 'pointer-events-none', '-translate-x-2');
+                                    btnLeft.classList.add('opacity-100', 'pointer-events-auto', 'translate-x-0');
+                                } else {
+                                    btnLeft.classList.add('opacity-0', 'pointer-events-none', '-translate-x-2');
+                                    btnLeft.classList.remove('opacity-100', 'pointer-events-auto', 'translate-x-0');
+                                }
+
+                                // Right Button: Show if NOT at end AND scrollable
+                                if (!atEnd && isScrollable) {
+                                    btnRight.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-2');
+                                    btnRight.classList.add('opacity-100', 'pointer-events-auto', 'translate-x-0');
+                                } else {
+                                    btnRight.classList.add('opacity-0', 'pointer-events-none', 'translate-x-2');
+                                    btnRight.classList.remove('opacity-100', 'pointer-events-auto', 'translate-x-0');
+                                }
+                            };
+
+                            // Initial Check & Listeners
+                            updateIndicators();
+                            container.addEventListener('scroll', updateIndicators);
+                            window.addEventListener('resize', updateIndicators);
+
+                            // Trigger update on hover to ensure state is fresh
+                            liveBarEl.addEventListener('mouseenter', updateIndicators);
                         }
                     }, 0);
                 }
