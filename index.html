@@ -2371,14 +2371,21 @@
                                 if (left + cardWidth > window.innerWidth - 10) left = window.innerWidth - cardWidth - 10;
                                 if (top + 200 > window.innerHeight) top = rect.top - 200 - 12; // Flip to top if no space below
 
+                                // 1. Disable transitions temporarily
+                                previewCard.style.transition = 'none';
+
+                                // 2. Set Position
                                 previewCard.style.left = `${left}px`;
                                 previewCard.style.top = `${top}px`;
 
+                                // 3. Show & Force Layout
                                 previewCard.classList.remove('hidden');
-                                previewCard.classList.add('pointer-events-auto'); // Enable clicking
+                                previewCard.classList.add('pointer-events-auto');
                                 previewCard.classList.remove('pointer-events-none');
+                                void previewCard.offsetWidth; // Force Reflow
 
-                                // Small delay to allow display:block to apply before opacity transition
+                                // 4. Re-enable transitions & Animate
+                                previewCard.style.transition = '';
                                 requestAnimationFrame(() => {
                                     previewCard.classList.remove('opacity-0', 'translate-y-2');
                                     previewCard.classList.add('opacity-100', 'translate-y-0');
