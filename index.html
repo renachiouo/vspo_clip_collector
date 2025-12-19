@@ -2448,7 +2448,7 @@
                             window.addEventListener('scroll', hideCard, { passive: true });
 
                             // Mobile: Hide on click outside
-                            if (isTouchDevice()) {
+                            if (isTouchSupported()) {
                                 document.addEventListener('click', (e) => {
                                     // If clicking outside container and outside card
                                     if (!container.contains(e.target) && !previewCard.contains(e.target)) {
@@ -2456,6 +2456,16 @@
                                     }
                                 });
                             }
+
+                            // Ensure Card Click Navigates (and doesn't bubble if needed)
+                            previewCard.onclick = (e) => {
+                                e.stopPropagation(); // Prevent document-level clicks
+                                if (currentCardUrl) {
+                                    window.open(currentCardUrl, '_blank');
+                                    // Optional: hideCard() after navigation?
+                                    // hideCard(); 
+                                }
+                            };
 
                         }
                     }, 0);
