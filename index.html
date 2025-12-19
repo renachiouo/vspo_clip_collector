@@ -2753,7 +2753,7 @@
 
                 const dataPackage = await fetchApi('youtube', { params: apiParams });
 
-                const videos = dataPackage.videos.map(v => {
+                const videos = (dataPackage.videos || []).map(v => {
                     if (v.originalStreamInfo && typeof v.originalStreamInfo === 'string') {
                         try { v.originalStreamInfo = JSON.parse(v.originalStreamInfo); }
                         catch (e) { console.error(`解析 'originalStreamInfo' 失敗(Video ID: ${v.id}): `, e); v.originalStreamInfo = null; }
