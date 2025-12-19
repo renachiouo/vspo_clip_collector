@@ -984,7 +984,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V12.9';
+        const CURRENT_APP_VERSION = 'V13.0';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -1021,6 +1021,15 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V13.0': {
+                title: 'V13.0 懸停預覽與行動版優化',
+                date: '2025-12-19',
+                features: [
+                    '【新增功能】直播懸停預覽：支援 YouTube / Twitch / Bilibili 全平台。',
+                    '【體驗優化】手機版點擊頭像可預覽，再次點擊才跳轉。',
+                    '【介面優化】直播列新增左右捲動箭頭與指標。',
+                ]
+            },
             'V12.9': {
                 title: 'V12.9 誰在直播中！',
                 date: '2025-12-18',
@@ -2204,7 +2213,16 @@
 
                             <div id="live-stream-bar" class="live-stream-container flex items-center gap-6 overflow-x-auto overflow-y-hidden mask-gradient-right pb-2 pt-2 pl-1 scroll-smooth">
                                 ${state.liveStreams.map(s => `
-                                    <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="group relative flex-shrink-0 transition-transform hover:scale-105" title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : s.platform === 'bilibili' ? ' (Bilibili)' : ''}">
+                                    <a href="${s.url}" 
+                                       target="_blank" 
+                                       rel="noopener noreferrer" 
+                                       class="group relative flex-shrink-0 transition-transform hover:scale-105" 
+                                       title="${s.memberName}${s.platform === 'twitch' ? ' (Twitch)' : s.platform === 'bilibili' ? ' (Bilibili)' : ''}"
+                                       data-platform="${s.platform}"
+                                       data-thumbnail="${s.thumbnailUrl || ''}"
+                                       data-title="${s.title?.replace(/"/g, '&quot;') || ''}"
+                                       data-name="${s.memberName}"
+                                    >
                                         <div class="relative">
                                             <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
                                             <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
@@ -2276,9 +2294,157 @@
                             updateIndicators();
                             container.addEventListener('scroll', updateIndicators);
                             window.addEventListener('resize', updateIndicators);
-
                             // Trigger update on hover to ensure state is fresh
                             liveBarEl.addEventListener('mouseenter', updateIndicators);
+
+                            // --- HOVER PREVIEW CARD LOGIC ---
+                            // Check if Global Card exists, if not create it
+                            let previewCard = document.getElementById('live-preview-card');
+                            if (!previewCard) {
+                                previewCard = document.createElement('div');
+                                previewCard.id = 'live-preview-card';
+                                previewCard.className = 'fixed z-50 pointer-events-none opacity-0 transition-opacity duration-300 ease-out hidden w-64 rounded-xl overflow-hidden shadow-2xl bg-gray-900/95 backdrop-blur border border-white/10 flex flex-col font-sans cursor-pointer'; // Added cursor-pointer
+                                document.body.appendChild(previewCard);
+                            }
+
+                            let hoverTimer = null;
+                            const HOVER_DELAY = 500; // 0.5s
+                            let currentCardUrl = ''; // Track URL for click navigation
+
+                            // Handle Card Click (Navigation)
+                            previewCard.addEventListener('click', (e) => {
+                                if (currentCardUrl) {
+                                    window.open(currentCardUrl, '_blank');
+                                }
+                            });
+
+                            const showCard = (target) => {
+                                const platform = target.dataset.platform;
+                                const thumbnail = target.dataset.thumbnail;
+                                const title = target.dataset.title || '無標題';
+                                const name = target.dataset.name;
+                                currentCardUrl = target.href; // Store URL
+
+                                // Only show if we have valid thumbnail (Youtube/Twitch/Bilibili)
+                                if ((platform !== 'youtube' && platform !== 'twitch' && platform !== 'bilibili') || !thumbnail) return;
+
+                                let platformColor = 'text-red-400';
+                                let platformBadgeBg = 'bg-red-600';
+                                let platformName = 'YouTube';
+
+                                if (platform === 'twitch') {
+                                    platformColor = 'text-purple-400';
+                                    platformBadgeBg = 'bg-purple-600';
+                                    platformName = 'Twitch';
+                                } else if (platform === 'bilibili') {
+                                    platformColor = 'text-sky-400';
+                                    platformBadgeBg = 'bg-sky-600';
+                                    platformName = 'Bilibili';
+                                }
+
+                                previewCard.innerHTML = `
+                                    <div class="w-full aspect-video bg-gray-800 relative overflow-hidden">
+                                        <img src="${thumbnail}" class="w-full h-full object-cover" alt="Thumbnail" referrerpolicy="no-referrer">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                        <div class="absolute bottom-2 right-2 ${platformBadgeBg} text-white text-[10px] px-1.5 py-0.5 rounded font-bold">LIVE</div>
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="text-white text-xs font-bold leading-tight line-clamp-2 mb-1.5">${title}</h3>
+                                        <div class="flex items-center text-gray-400 text-[10px]">
+                                            <span class="truncate max-w-[120px]">${name}</span>
+                                            <span class="mx-1">•</span>
+                                            <span class="${platformColor}">${platformName}</span>
+                                        </div>
+                                    </div>
+                                `;
+
+                                // Positioning
+                                const rect = target.getBoundingClientRect();
+                                const cardWidth = 256; // w-64
+                                // Center horizontally relative to target
+                                let left = rect.left + (rect.width / 2) - (cardWidth / 2);
+                                // Position below target
+                                let top = rect.bottom + 12;
+
+                                // Boundary Checks
+                                if (left < 10) left = 10;
+                                if (left + cardWidth > window.innerWidth - 10) left = window.innerWidth - cardWidth - 10;
+                                if (top + 200 > window.innerHeight) top = rect.top - 200 - 12; // Flip to top if no space below
+
+                                previewCard.style.left = `${left}px`;
+                                previewCard.style.top = `${top}px`;
+
+                                previewCard.classList.remove('hidden');
+                                previewCard.classList.add('pointer-events-auto'); // Enable clicking
+                                previewCard.classList.remove('pointer-events-none');
+
+                                // Small delay to allow display:block to apply before opacity transition
+                                requestAnimationFrame(() => {
+                                    previewCard.classList.remove('opacity-0', 'translate-y-2');
+                                    previewCard.classList.add('opacity-100', 'translate-y-0');
+                                });
+                            };
+
+                            const hideCard = () => {
+                                if (hoverTimer) clearTimeout(hoverTimer);
+                                previewCard.classList.add('opacity-0', 'translate-y-2');
+                                previewCard.classList.remove('opacity-100', 'translate-y-0');
+                                previewCard.classList.remove('pointer-events-auto');
+                                previewCard.classList.add('pointer-events-none');
+                                // Wait for transition then hide
+                                setTimeout(() => {
+                                    if (previewCard.classList.contains('opacity-0')) {
+                                        previewCard.classList.add('hidden');
+                                    }
+                                }, 300);
+                            };
+
+                            // Check for Touch Capability
+                            const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
+
+                            // Delegate Events on Container
+                            container.querySelectorAll('a').forEach(el => {
+                                // 1. Desktop Hover
+                                el.addEventListener('mouseenter', (e) => {
+                                    if (isTouchDevice()) return; // Ignore on mobile
+                                    if (hoverTimer) clearTimeout(hoverTimer);
+                                    hoverTimer = setTimeout(() => {
+                                        showCard(el);
+                                    }, HOVER_DELAY);
+                                });
+
+                                el.addEventListener('mouseleave', () => {
+                                    if (isTouchDevice()) return; // Ignore on mobile
+                                    hideCard();
+                                });
+
+                                // 2. Mobile Tap / Desktop Click
+                                el.addEventListener('click', (e) => {
+                                    if (isTouchDevice()) {
+                                        // Mobile: Prevent default navigation, Show Card
+                                        e.preventDefault();
+                                        showCard(el);
+                                    } else {
+                                        // Desktop: Default Click (Navigate), Hide Card
+                                        hideCard();
+                                    }
+                                });
+                            });
+
+                            // Hide on Scroll
+                            container.addEventListener('scroll', hideCard, { passive: true });
+                            window.addEventListener('scroll', hideCard, { passive: true });
+
+                            // Mobile: Hide on click outside
+                            if (isTouchDevice()) {
+                                document.addEventListener('click', (e) => {
+                                    // If clicking outside container and outside card
+                                    if (!container.contains(e.target) && !previewCard.contains(e.target)) {
+                                        hideCard();
+                                    }
+                                });
+                            }
+
                         }
                     }, 0);
                 }
