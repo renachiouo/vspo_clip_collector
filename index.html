@@ -2406,14 +2406,13 @@
                                 }, 300);
                             };
 
-                            // Check for Touch Capability
-                            const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
+                            // Check for Touch Capability (Omni-Channel)
+                            const isTouchSupported = () => ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
                             // Delegate Events on Container
                             container.querySelectorAll('a').forEach(el => {
-                                // 1. Desktop Hover
+                                // 1. Desktop Hover (Always active for hybrid devices)
                                 el.addEventListener('mouseenter', (e) => {
-                                    if (isTouchDevice()) return; // Ignore on mobile
                                     if (hoverTimer) clearTimeout(hoverTimer);
                                     hoverTimer = setTimeout(() => {
                                         showCard(el);
@@ -2421,20 +2420,26 @@
                                 });
 
                                 el.addEventListener('mouseleave', () => {
-                                    if (isTouchDevice()) return; // Ignore on mobile
                                     hideCard();
                                 });
 
-                                // 2. Mobile Tap / Desktop Click
+                                // 2. Clean Click Handler (Smart Logic)
                                 el.addEventListener('click', (e) => {
-                                    if (isTouchDevice()) {
-                                        // Mobile: Prevent default navigation, Show Card
-                                        e.preventDefault();
-                                        showCard(el);
-                                    } else {
-                                        // Desktop: Default Click (Navigate), Hide Card
-                                        hideCard();
+                                    // If device supports touch, we need to be careful
+                                    if (isTouchSupported()) {
+                                        // If card is NOT showing for this target yet, intercept it
+                                        // We use currentCardUrl to check what is currently displayed
+                                        if (currentCardUrl !== el.href || previewCard.classList.contains('hidden') || previewCard.classList.contains('opacity-0')) {
+                                            e.preventDefault();
+                                            showCard(el);
+                                            return;
+                                        }
+                                        // If card IS showing for this target, allow default (navigate)
                                     }
+
+                                    // For pure desktop, or 2nd tap on mobile:
+                                    // Let default happen (navigation), and clean up
+                                    hideCard();
                                 });
                             });
 
