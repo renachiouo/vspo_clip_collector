@@ -2457,15 +2457,17 @@
                                 });
                             }
 
-                            // Ensure Card Click Navigates (and doesn't bubble if needed)
-                            previewCard.onclick = (e) => {
-                                e.stopPropagation(); // Prevent document-level clicks
+                            // Ensure Card Click Navigates (Robust Mobile Handling)
+                            const handleCardNavigate = (e) => {
+                                e.stopPropagation();
+                                e.preventDefault(); // Prevent ghost clicks
                                 if (currentCardUrl) {
                                     window.open(currentCardUrl, '_blank');
-                                    // Optional: hideCard() after navigation?
-                                    // hideCard(); 
                                 }
                             };
+
+                            previewCard.onclick = handleCardNavigate;
+                            previewCard.ontouchstart = handleCardNavigate; // Use touchstart for immediate response on mobile
 
                         }
                     }, 0);
