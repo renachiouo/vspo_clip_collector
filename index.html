@@ -984,7 +984,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V13.1';
+        const CURRENT_APP_VERSION = 'V13.2';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -1021,6 +1021,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V13.2': {
+                title: 'V13.2 BUG修復',
+                date: '2025-12-21',
+                features: [
+                    '【BUG修復】修復手機版懸浮視窗邏輯：點擊預覽，再次點擊跳轉',
+                ]
+            },
             'V13.1': {
                 title: 'V13.1 BUG修復',
                 date: '2025-12-20',
@@ -2362,15 +2369,40 @@
                     }
 
                     // Attach hover listeners
+                    // Attach behavior listeners (Desktop Hover + Mobile Tap)
+                    const isTouchDevice = () => ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
                     container.querySelectorAll('a').forEach(link => {
+                        // Desktop Hover Logic
                         link.addEventListener('mouseenter', (e) => {
-                            const target = e.currentTarget; // Capture target immediately
+                            if (isTouchDevice()) return; // Ignore mouseenter on touch devices
+                            const target = e.currentTarget;
                             if (window.livePreviewState.timer) clearTimeout(window.livePreviewState.timer);
                             window.livePreviewState.timer = setTimeout(() => showCard(target), window.livePreviewState.delay);
                         });
+
                         link.addEventListener('mouseleave', () => {
+                            if (isTouchDevice()) return;
                             if (window.livePreviewState.timer) clearTimeout(window.livePreviewState.timer);
                             hideCard();
+                        });
+
+                        // Smart Click/Tap Logic
+                        link.addEventListener('click', (e) => {
+                            if (isTouchDevice()) {
+                                // If card is NOT showing for this link, prevent nav and show card
+                                // Optimization: check if card is hidden or if currentUrl matches
+                                const isCardVisible = !previewCard.classList.contains('hidden') && !previewCard.classList.contains('opacity-0');
+                                const isSameLink = window.livePreviewState.currentUrl === e.currentTarget.href;
+
+                                if (!isCardVisible || !isSameLink) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    showCard(e.currentTarget);
+                                }
+                                // If card IS visible AND it's the same link, allow default (navigate)
+                            }
+                            // On desktop, click always navigates (default behavior)
                         });
                     });
 
