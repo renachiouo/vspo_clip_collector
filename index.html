@@ -984,7 +984,7 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V13.2';
+        const CURRENT_APP_VERSION = 'V13.3';
         const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -1021,6 +1021,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V13.3': {
+                title: 'V13.3 誰快要直播？',
+                date: '2025-12-24',
+                features: [
+                    '【新增功能】新增顯示24小時內已排定直播',
+                ]
+            },
             'V13.2': {
                 title: 'V13.2 BUG修復',
                 date: '2025-12-21',
@@ -2199,11 +2206,23 @@
                                        data-thumbnail="${s.thumbnailUrl || ''}"
                                        data-title="${s.title?.replace(/"/g, '&quot;') || ''}"
                                        data-name="${s.memberName}"
+                                       data-status="${s.status || 'live'}"
+                                       data-starttime="${s.startTime || ''}"
                                     >
                                         <div class="relative">
-                                            <div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>
-                                            <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
-                                            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>
+                                            ${s.status === 'upcoming' ? '' : `<div class="absolute -inset-1 bg-gradient-to-tr ${s.platform === 'twitch' ? 'from-purple-600 to-purple-400' : s.platform === 'bilibili' ? 'from-sky-500 to-sky-400' : 'from-red-600 to-red-400'} rounded-full opacity-75 group-hover:opacity-100 blur-[2px] animate-pulse"></div>`}
+                                            <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.status === 'upcoming' ? 'border-gray-500 grayscale opacity-80' : s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
+                                            
+                                            ${s.status === 'upcoming'
+                            ? (() => {
+                                const date = new Date(s.startTime);
+                                const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                // Only show MM/DD if not today? For compactness, just HH:MM might be better, but user asked for date too.
+                                // Let's use condensed format for the tiny bubbles.
+                                return `<div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-gray-700 text-gray-200 text-[8px] font-bold px-1 py-0.5 rounded z-20 shadow-sm whitespace-nowrap border border-gray-500">${timeStr}</div>`;
+                            })()
+                            : `<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>`
+                        }
                                         </div>
                                     </a>
                                 `).join('')}
@@ -2297,17 +2316,35 @@
                             platformColor = 'text-purple-400';
                             platformBadgeBg = 'bg-purple-600';
                             platformName = 'Twitch';
-                        } else if (platform === 'bilibili') {
-                            platformColor = 'text-sky-400';
-                            platformBadgeBg = 'bg-sky-600';
                             platformName = 'Bilibili';
+                        }
+
+                        // Determine Badge & Status
+                        let statusBadgeHtml = '';
+                        if (target.dataset.status === 'upcoming' && target.dataset.starttime) {
+                            const date = new Date(target.dataset.starttime);
+                            const month = date.getMonth() + 1;
+                            const day = date.getDate();
+                            const time = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            const dateStr = `${month}/${day} ${time}`;
+
+                            statusBadgeHtml = `
+                                <div class="absolute bottom-2 right-2 bg-gray-600/90 text-white text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                                    即將開始 ${dateStr}
+                                </div>`;
+
+                            // Dim the thumbnail slightly for upcoming
+                            platformColor = 'text-gray-400';
+                        } else {
+                            statusBadgeHtml = `<div class="absolute bottom-2 right-2 ${platformBadgeBg} text-white text-[10px] px-1.5 py-0.5 rounded font-bold">LIVE</div>`;
                         }
 
                         previewCard.innerHTML = `
                              <div class="w-full aspect-video bg-gray-800 relative overflow-hidden">
-                                 <img src="${thumbnail}" class="w-full h-full object-cover" alt="Thumbnail" referrerpolicy="no-referrer">
+                                 <img src="${thumbnail}" class="w-full h-full object-cover ${target.dataset.status === 'upcoming' ? 'grayscale opacity-80' : ''}" alt="Thumbnail" referrerpolicy="no-referrer">
                                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                 <div class="absolute bottom-2 right-2 ${platformBadgeBg} text-white text-[10px] px-1.5 py-0.5 rounded font-bold">LIVE</div>
+                                 ${statusBadgeHtml}
                              </div>
                              <div class="p-3">
                                  <h3 class="text-white text-xs font-bold leading-tight line-clamp-2 mb-1.5">${title}</h3>
@@ -3090,7 +3127,7 @@
 
                     if (!isDismissed) {
                         bannerText.textContent = announcement.content;
-                        banner.className = `type - ${announcement.type} `; // 設定類型樣式
+                        banner.className = `type-${announcement.type}`; // 設定類型樣式
                         banner.classList.add('visible');
 
                         closeBtn.onclick = () => {
@@ -3099,7 +3136,6 @@
                         };
                     }
                 }
-                // --- END: 處理公告顯示 ---
                 // --- END: 處理公告顯示 ---
 
                 // 獨立處理分類狀態檢查，避免因其失敗/逾時而導致整個頁面顯示錯誤
