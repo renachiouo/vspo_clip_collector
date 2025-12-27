@@ -1379,6 +1379,7 @@
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                     <button class="admin-tab-btn ${activeTab === 'admin_logs' ? 'active' : ''} whitespace-nowrap" data-tab="admin_logs">操作日誌</button>
+                    <button class="admin-tab-btn ${activeTab === 'api_status' ? 'active' : ''} whitespace-nowrap" data-tab="api_status">API 狀態</button>
                 </div>
                 <div class="flex-grow min-h-0 overflow-y-auto">
                     <div id="tab-pending_jp" class="admin-tab-content ${activeTab === 'pending_jp' ? 'active' : ''} space-y-2">${createListItems(listsData.pending_jp, 'pending')}</div>
@@ -1505,6 +1506,96 @@
                                         <tr><td colspan="3" class="px-4 py-4 text-center">點擊上方標籤以重新整理日誌...</td></tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tab-api_status" class="admin-tab-content ${activeTab === 'api_status' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-indigo-400 mb-4 flex justify-between items-center">
+                                 API 配額狀態
+                                 <div class="flex items-center space-x-2 text-sm">
+                                    <label for="quota-date-select" class="text-gray-400">日期:</label>
+                                    <select id="quota-date-select" class="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                        <!-- populated dynamically -->
+                                    </select>
+                                 </div>
+                            </h4>
+                            
+                            <div id="api-status-loading" class="text-center py-8 text-indigo-300 animate-pulse">正在載入配額數據...</div>
+                            <div id="api-status-error" class="hidden text-center py-8 text-red-400"></div>
+                            
+                            <div id="api-status-content" class="hidden space-y-6">
+                                <!-- 1. Overview Cards -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     <div class="bg-gray-700/50 p-4 rounded border border-gray-600 flex flex-col items-center justify-center">
+                                        <span class="text-gray-400 text-xs uppercase tracking-wider font-semibold">今日總使用量</span>
+                                        <div class="mt-2 flex items-baseline gap-1">
+                                            <span id="quota-total-used" class="text-3xl font-bold text-white">--</span>
+                                            <span class="text-gray-500 text-sm">/ ~130,000</span>
+                                        </div>
+                                        <div class="w-full bg-gray-600 rounded-full h-1.5 mt-2 overflow-hidden">
+                                            <div id="quota-progress-bar" class="bg-blue-500 h-1.5 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                     </div>
+                                     <div class="bg-gray-700/50 p-4 rounded border border-gray-600 flex flex-col items-center justify-center">
+                                        <span class="text-gray-400 text-xs uppercase tracking-wider font-semibold">當前使用的 Key</span>
+                                        <div class="mt-2 flex flex-col items-center">
+                                            <span id="quota-active-key" class="text-3xl font-bold text-green-400 font-mono">--</span>
+                                            <span class="text-gray-500 text-xs mt-1">Key 編號 (0-12)</span>
+                                        </div>
+                                     </div>
+                                     <div class="bg-gray-700/50 p-4 rounded border border-gray-600 flex flex-col items-center justify-center">
+                                        <span class="text-gray-400 text-xs uppercase tracking-wider font-semibold">資料日期 (PT)</span>
+                                        <span id="quota-date-display" class="text-xl font-bold text-indigo-300 mt-2 font-mono">--</span>
+                                         <span class="text-gray-500 text-xs mt-1">太平洋時間 (UTC-8)</span>
+                                         <div id="quota-local-date-display" class="mt-2 text-[10px] text-gray-400 bg-black/20 px-2 py-1 rounded border border-gray-600/50">
+                                            本地: --
+                                         </div>
+                                     </div>
+                                </div>
+
+                                <!-- 2. Key Status Grid -->
+                                <div>
+                                    <div class="flex justify-between items-end mb-2">
+                                        <h5 class="text-sm text-gray-300 font-semibold">API Key 健康狀態 <span class="text-xs text-gray-500 font-normal ml-1">(點擊查看詳情)</span></h5>
+                                        <div class="flex gap-3 text-[10px] text-gray-400">
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> 安全/使用中</span>
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> 高負載</span>
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> 耗盡</span>
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full border border-white bg-transparent"></span> 當前</span>
+                                        </div>
+                                    </div>
+                                    <div id="quota-keys-grid" class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                        <!-- Keys 0-12 blocks injected here -->
+                                    </div>
+                                </div>
+
+                                <!-- 3. Usage Breakdown Table -->
+                                <div>
+                                    <h5 class="text-sm text-gray-300 font-semibold mb-2">詳細使用明細</h5>
+                                    <div class="overflow-x-auto bg-gray-900/30 rounded-lg border border-gray-700/50">
+                                        <table class="w-full text-left text-sm text-gray-400">
+                                            <thead class="bg-gray-700/50 text-gray-300 uppercase text-[10px] tracking-wider font-semibold">
+                                                <tr>
+                                                    <th class="px-3 py-2 w-16 text-center">Key</th>
+                                                    <th class="px-3 py-2 text-right">總使用量</th>
+                                                    <th class="px-3 py-2 text-right text-indigo-300 w-24">消耗率</th>
+                                                    <th class="px-3 py-2 text-right w-24">搜尋 (100)</th>
+                                                    <th class="px-3 py-2 text-right w-24">影片 (1)</th>
+                                                    <th class="px-3 py-2 text-right">其他 (1)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="quota-breakdown-body" class="divide-y divide-gray-700/50 font-mono text-xs">
+                                                 <!-- Rows populated here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                 <div class="text-[10px] text-gray-600 italic text-center border-t border-gray-700 pt-2 mt-2">
+                                    * 數據基於本地推算，實際 Google Console 使用量可能略有不同。<br>
+                                    搜尋成本: 100 單位。其他 (影片詳情等): 1 單位。
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1792,6 +1883,181 @@
                 // Initial load if tab is active, or when tab is clicked
                 if (adminLogsTabBtn.classList.contains('active')) loadAdminLogs(password);
                 adminLogsTabBtn.addEventListener('click', () => loadAdminLogs(password));
+            }
+
+            // API Status Tab Logic
+            const apiStatusTabBtn = modal.querySelector('.admin-tab-btn[data-tab="api_status"]');
+            if (apiStatusTabBtn) {
+                // Initialize Date Picker once (last 7 days from today based on browser, but backend handles PT)
+                const dateSelect = modal.querySelector('#quota-date-select');
+                if (dateSelect) {
+                    const today = new Date();
+                    // Generate last 8 days to match retention
+                    for (let i = 0; i < 8; i++) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const opt = document.createElement('option');
+                        opt.value = dateStr;
+                        opt.text = (i === 0 ? `今日 (${dateStr})` : dateStr);
+                        dateSelect.appendChild(opt);
+                    }
+                    dateSelect.addEventListener('change', () => loadApiStatus(password, dateSelect.value));
+                }
+
+                if (apiStatusTabBtn.classList.contains('active')) loadApiStatus(password);
+                apiStatusTabBtn.addEventListener('click', () => loadApiStatus(password));
+            }
+        }
+
+
+
+        async function loadApiStatus(password, dateOverride = null) {
+            const container = document.getElementById('tab-api_status');
+            const loadingDiv = document.getElementById('api-status-loading');
+            const contentDiv = document.getElementById('api-status-content');
+            const errorDiv = document.getElementById('api-status-error');
+
+            if (!container) return;
+
+            loadingDiv.classList.remove('hidden');
+            contentDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            errorDiv.innerText = '';
+
+            const dateSelect = document.getElementById('quota-date-select');
+            const targetDate = dateOverride || (dateSelect ? dateSelect.value : null);
+
+            try {
+                // Fetch Data
+                const params = { password };
+                if (targetDate) params.date = targetDate;
+
+                // Reuse fetchApi, accessing local backend path
+                // Note: /api/quota is public in backend code, but we can pass password if needed later.
+                // It is currently public, so password isn't strictly checked by backend for just reading, 
+                // but good to keep pattern. 
+                // The fetchApi wrapper appends params to URL.
+                const res = await fetchApi('quota', { params });
+
+                if (!res.success) throw new Error(res.error || '無法獲取配額數據');
+
+                // Render Overview
+                const totalUsed = res.totalUsed || 0;
+                document.getElementById('quota-total-used').innerText = totalUsed.toLocaleString();
+                document.getElementById('quota-total-used').className = `text-3xl font-bold ${totalUsed > 100000 ? 'text-red-500' : totalUsed > 80000 ? 'text-yellow-400' : 'text-white'}`;
+
+                const percent = Math.min(100, (totalUsed / 130000) * 100);
+                document.getElementById('quota-progress-bar').style.width = `${percent}%`;
+                document.getElementById('quota-progress-bar').className = `h-1.5 rounded-full ${percent > 90 ? 'bg-red-500' : percent > 70 ? 'bg-yellow-500' : 'bg-blue-500'}`;
+
+                document.getElementById('quota-active-key').innerText = (res.currentKeyIndex !== undefined) ? `Key ${res.currentKeyIndex}` : 'N/A';
+                document.getElementById('quota-date-display').innerText = res.date;
+
+                // Calculate and display local time range
+                if (res.date) {
+                    try {
+                        // Assuming PT is UTC-8 (PST Standard Time) for simplicity as per current usage
+                        // "2025-12-27" PT starts at 2025-12-27 00:00:00 UTC-08:00
+                        // Which is 2025-12-27 08:00:00 UTC
+
+                        const ptDateParts = res.date.split('-');
+                        const year = parseInt(ptDateParts[0]);
+                        const month = parseInt(ptDateParts[1]) - 1;
+                        const day = parseInt(ptDateParts[2]);
+
+                        // Construct UTC date assuming PT midnight is +8 hours in UTC
+                        const utcStart = new Date(Date.UTC(year, month, day, 8, 0, 0));
+                        const utcEnd = new Date(Date.UTC(year, month, day + 1, 8, 0, 0));
+
+                        const fmt = new Intl.DateTimeFormat(undefined, {
+                            month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: false
+                        });
+
+                        const localStart = fmt.format(utcStart);
+                        const localEnd = fmt.format(utcEnd);
+
+                        document.getElementById('quota-local-date-display').innerText = `本地: ${localStart} - ${localEnd}`;
+                    } catch (err) {
+                        console.warn('Date conversion error:', err);
+                        document.getElementById('quota-local-date-display').innerText = '本地: 轉換失敗';
+                    }
+                }
+
+                // Render Grid & Table
+                const gridContainer = document.getElementById('quota-keys-grid');
+                const tbody = document.getElementById('quota-breakdown-body');
+                gridContainer.innerHTML = '';
+                tbody.innerHTML = '';
+
+                const activeKeyIdx = res.currentKeyIndex || 0;
+
+                // Prepare total usage for each key
+                const breakdown = res.breakdown || {};
+
+                for (let i = 0; i < 13; i++) {
+                    const keyData = breakdown[`key_${i}`] || { total: 0, details: {} };
+                    const keyTotal = keyData.total || 0;
+                    const isCurrent = (i === activeKeyIdx && dateOverride === null); // Only highlight current if viewing today (conceptually, or just always highlight index)
+                    // Actually currentKeyIndex from backend is "Now". It doesn't change if looking at history.
+                    // But highlighting it only makes sense if we imply "This is the active key NOW".
+
+                    // Grid Item
+                    const gridItem = document.createElement('div');
+                    // Color Logic
+                    let bgClass = 'bg-gray-700/80';
+                    let textClass = 'text-green-400';
+
+                    if (keyTotal > 9800) { bgClass = 'bg-red-900/50 border-red-500/50'; textClass = 'text-red-300'; }
+                    else if (keyTotal > 8000) { bgClass = 'bg-yellow-900/50 border-yellow-500/50'; textClass = 'text-yellow-300'; }
+                    else if (keyTotal > 0) {
+                        if (isCurrent) { bgClass = 'bg-green-900/30 border-green-500'; textClass = 'text-green-300'; }
+                    } else {
+                        textClass = 'text-gray-500'; // Idle
+                    }
+
+                    // Current Key Border override
+                    const borderClass = (i === activeKeyIdx) ? 'border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border border-transparent hover:border-gray-500';
+
+                    gridItem.className = `${bgClass} ${borderClass} p-2 rounded flex flex-col items-center justify-center transition-all cursor-default h-16`;
+                    gridItem.innerHTML = `
+                        <span class="text-[10px] text-gray-400 uppercase">Key ${i}</span>
+                        <span class="font-mono font-bold ${textClass} text-sm">${keyTotal.toLocaleString()}</span>
+                     `;
+                    gridContainer.appendChild(gridItem);
+
+                    // Table Row
+                    if (keyTotal > 0) {
+                        const details = keyData.details || {};
+                        const searchCount = details['search'] || 0;
+                        const videosCount = (details['videos'] || 0) + (details['playlistItems'] || 0); // rough grouping
+                        const othersCount = keyTotal - searchCount - videosCount; // remainder
+
+                        const tr = document.createElement('tr');
+                        tr.className = (i === activeKeyIdx) ? 'bg-indigo-900/20' : '';
+                        tr.innerHTML = `
+                            <td class="px-3 py-2 text-center font-mono text-gray-300 ${i === activeKeyIdx ? 'font-bold text-white' : ''}">${i}</td>
+                            <td class="px-3 py-2 text-right font-mono text-white">${keyTotal.toLocaleString()}</td>
+                            <td class="px-3 py-2 text-right font-mono text-indigo-300">${((keyTotal / 10000) * 100).toFixed(1)}%</td>
+                            <td class="px-3 py-2 text-right font-mono text-gray-400">${searchCount.toLocaleString()}</td>
+                            <td class="px-3 py-2 text-right font-mono text-gray-400">${videosCount.toLocaleString()}</td>
+                            <td class="px-3 py-2 text-right font-mono text-gray-500">${othersCount.toLocaleString()}</td>
+                         `;
+                        tbody.appendChild(tr);
+                    }
+                }
+
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500 italic">No usage data for this date.</td></tr>';
+                }
+
+                loadingDiv.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+
+            } catch (e) {
+                loadingDiv.classList.add('hidden');
+                errorDiv.classList.remove('hidden');
+                errorDiv.innerText = `載入數據錯誤: ${e.message}`;
             }
         }
 
