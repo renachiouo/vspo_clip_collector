@@ -1632,6 +1632,7 @@
 
             modalOverlay.innerHTML = `<div class="modal-content admin-modal-content">
             <h3 class="text-2xl font-bold text-indigo-400 mb-4">管理員後台</h3>
+            ${alertHTML}
             <div class="flex-grow flex items-center justify-center">
                 <div class="spinner text-indigo-400" style="width: 3rem; height: 3rem; border-width: 4px;"></div>
                 <p class="ml-4 text-lg text-gray-400">正在載入列表資料...</p>
@@ -1645,8 +1646,22 @@
             setTimeout(() => modalOverlay.classList.add('visible'), 10);
 
             try {
+                // Modified: fetchApi now returns { bilibili_error: boolean, ...lists }
                 const listsData = await fetchApi('admin/lists', { params: { password } });
-                modalOverlay.innerHTML = createAdminModalHTML(listsData, password, activeTab);
+
+                let alertHTML = '';
+                if (listsData.bilibili_error) {
+                    alertHTML = `
+                    <div class="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg flex items-center gap-3 text-red-200">
+                        <div class="text-xl">⚠️</div>
+                        <div class="flex-grow">
+                            <div class="font-bold">注意：BILIBILI_SESSDATA 已失效</div>
+                            <div class="text-xs opacity-80">請更新後端 .env 設定，否則無法同步 Bilibili 存檔。</div>
+                        </div>
+                    </div>`;
+                }
+
+                modalOverlay.innerHTML = createAdminModalHTML(listsData, password, activeTab, alertHTML);
                 setupAdminModalEventListeners(password);
             } catch (error) {
                 console.error('載入管理列表失敗:', error);
@@ -1659,7 +1674,7 @@
             }
         }
 
-        function createAdminModalHTML(listsData, password, activeTab = 'pending_jp') {
+        function createAdminModalHTML(listsData, password, activeTab = 'pending_jp', alertHTML = '') {
             const createListItems = (list, type) => {
                 if (!list || list.length === 0) {
                     return '<p class="text-gray-500 text-center py-8">這個列表是空的。</p>';
