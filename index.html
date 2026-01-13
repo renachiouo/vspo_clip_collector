@@ -3384,7 +3384,16 @@
                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                               <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                             </span>
-                            <span class="font-bold text-red-400 tracking-wider text-sm">LIVE NOW</span>
+                            <div class="flex flex-col">
+                                <span class="font-bold text-red-400 tracking-wider text-sm">LIVE NOW</span>
+                                <span class="text-[10px] text-gray-500 font-mono leading-none mt-0.5" title="上次檢查時間">
+                                    ${(() => {
+                            if (!state.liveLastUpdated) return '';
+                            const date = new Date(state.liveLastUpdated);
+                            return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                        })()}
+                                </span>
+                            </div>
                         </div>
                         
                         <div class="relative flex-grow min-w-0 group/scroll">
@@ -3414,15 +3423,15 @@
                                             <img src="${s.avatarUrl}" alt="${s.memberName}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 ${s.status === 'upcoming' ? 'border-gray-500 grayscale opacity-80' : s.platform === 'twitch' ? 'border-purple-500' : s.platform === 'bilibili' ? 'border-sky-500' : 'border-red-500'} relative z-10 bg-gray-900 object-cover">
                                             
                                             ${s.status === 'upcoming'
-                            ? (() => {
-                                const date = new Date(s.startTime);
-                                const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-                                // Only show MM/DD if not today? For compactness, just HH:MM might be better, but user asked for date too.
-                                // Let's use condensed format for the tiny bubbles.
-                                return `<div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-gray-700 text-gray-200 text-[8px] font-bold px-1 py-0.5 rounded z-20 shadow-sm whitespace-nowrap border border-gray-500">${timeStr}</div>`;
-                            })()
-                            : `<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>`
-                        }
+                                ? (() => {
+                                    const date = new Date(s.startTime);
+                                    const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    // Only show MM/DD if not today? For compactness, just HH:MM might be better, but user asked for date too.
+                                    // Let's use condensed format for the tiny bubbles.
+                                    return `<div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-gray-700 text-gray-200 text-[8px] font-bold px-1 py-0.5 rounded z-20 shadow-sm whitespace-nowrap border border-gray-500">${timeStr}</div>`;
+                                })()
+                                : `<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${s.platform === 'bilibili' ? 'bg-sky-600' : 'bg-red-600'} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-20 shadow-sm whitespace-nowrap border-2 border-gray-900">LIVE</div>`
+                            }
                                         </div>
                                     </a>
                                 `).join('')}
