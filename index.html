@@ -1332,6 +1332,9 @@
             activeLanguage: 'cn',
             activeTab: 'all', // 'all', 'video', 'short', 'channels'
             visibleCount: 24, // Initial visible count for infinite scroll
+            storiesScrollLeft: 0, // NEW: Persist member filter scroll (Stories)
+            memberFilterScrollLeft: 0, // NEW: Persist main member filter scroll (Mobile/JP/CN)
+            memberFilterScrollTop: 0,  // NEW: Persist main member filter scroll (Desktop/JP/CN)
         };
 
         const appContainer = document.getElementById('app');
@@ -2697,6 +2700,21 @@
                 listContainer.appendChild(divider);
                 otherGroups[groupName].forEach(member => listContainer.appendChild(createMemberButton(member)));
             }
+
+            // Restore scroll position
+            if (state.memberFilterScrollLeft > 0 || state.memberFilterScrollTop > 0) {
+                setTimeout(() => {
+                    listContainer.scrollLeft = state.memberFilterScrollLeft;
+                    listContainer.scrollTop = state.memberFilterScrollTop;
+                }, 0);
+            }
+
+            // Capture scroll for persistence
+            listContainer.onscroll = () => {
+                state.memberFilterScrollLeft = listContainer.scrollLeft;
+                state.memberFilterScrollTop = listContainer.scrollTop;
+            };
+
             return listContainer;
         }
 
@@ -3165,10 +3183,6 @@
             rightBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>`;
             wrapper.appendChild(rightBtn);
 
-            // Scroll button click handlers
-            leftBtn.onclick = () => { container.scrollBy({ left: -200, behavior: 'smooth' }); };
-            rightBtn.onclick = () => { container.scrollBy({ left: 200, behavior: 'smooth' }); };
-
             // Update arrow visibility based on scroll position
             const updateArrows = () => {
                 const canScrollLeft = container.scrollLeft > 10;
@@ -3176,6 +3190,19 @@
                 leftBtn.classList.toggle('visible', canScrollLeft);
                 rightBtn.classList.toggle('visible', canScrollRight);
             };
+
+            // Scroll button click handlers
+            leftBtn.onclick = () => { container.scrollBy({ left: -200, behavior: 'smooth' }); };
+            rightBtn.onclick = () => { container.scrollBy({ left: 200, behavior: 'smooth' }); };
+
+            // Restore scroll position
+            if (state.storiesScrollLeft > 0) {
+                // Use setTimeout to ensure it happens after it's in the DOM
+                setTimeout(() => {
+                    container.scrollLeft = state.storiesScrollLeft;
+                    updateArrows();
+                }, 0);
+            }
 
             container.addEventListener('scroll', updateArrows);
             // Initial check after render
@@ -3206,6 +3233,11 @@
                 element.classList.add('active'); // Optional: for cursor style
                 startX = e.pageX - element.offsetLeft;
                 scrollLeft = element.scrollLeft;
+            });
+
+            // Capture scroll for persistence
+            element.addEventListener('scroll', () => {
+                state.storiesScrollLeft = element.scrollLeft;
             });
             element.addEventListener('mouseleave', () => { isDown = false; });
             element.addEventListener('mouseup', () => { isDown = false; });
