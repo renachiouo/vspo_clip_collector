@@ -4364,7 +4364,7 @@
                 for (const v of allVersions) {
                     if (!lastSeenVersion || parseFloat(v.slice(1)) > parseFloat(lastSeenVersion.slice(1))) { newVersionsToShow.push(v); } else { break; }
                 }
-                if (newVersionsToShow.length > 0) { showVersionUpdateModal(newVersionsToShow.reverse()); }
+                if (newVersionsToShow.length > 0) { showVersionUpdateModal(newVersionsToShow); }
             }
 
             try {
