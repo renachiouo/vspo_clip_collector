@@ -881,6 +881,314 @@
         }
 
         /* --- END: 公告欄樣式 --- */
+
+        /* --- START: Stories Filter Style --- */
+        .stories-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .stories-container {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 0.5rem 2.5rem 1rem 2.5rem;
+            /* Added 40px padding on sides for fade space */
+            scrollbar-width: none;
+            /* Firefox */
+            -webkit-mask-image: linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent);
+            mask-image: linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent);
+            touch-action: pan-x;
+            /* Ensure touch scrolling works */
+        }
+
+        .stories-scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(31, 41, 55, 0.9);
+            border: 1px solid #374151;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .stories-scroll-btn:hover {
+            background: rgba(55, 65, 81, 1);
+            color: #22d3ee;
+            border-color: #22d3ee;
+        }
+
+        .stories-scroll-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .stories-scroll-btn.left {
+            left: 4px;
+        }
+
+        .stories-scroll-btn.right {
+            right: 4px;
+        }
+
+        .stories-container::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari */
+        }
+
+        .story-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            /* Important for scrolling */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 72px;
+        }
+
+        .story-item:hover {
+            transform: translateY(-2px);
+        }
+
+
+
+        .story-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            padding: 2px;
+            border: 2px solid #374151;
+            /* gray-700 */
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .story-item.active .story-ring {
+            border-color: #22d3ee;
+            /* cyan-400 */
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+        }
+
+        .story-item.active .story-ring::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #22d3ee;
+            opacity: 0.5;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        /* LIVE Badge Styles */
+        @keyframes live-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes live-border-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+            }
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+            animation: live-pulse 1.5s ease-in-out infinite;
+            z-index: 30;
+        }
+
+        .live-badge .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: live-pulse 1s ease-in-out infinite;
+        }
+
+        .stream-card.is-live {
+            animation: live-border-pulse 2s ease-in-out infinite;
+        }
+
+        .story-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #1f2937;
+        }
+
+        .story-name {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+            transition: color 0.2s;
+        }
+
+        .story-item.active .story-name {
+            color: #22d3ee;
+            font-weight: bold;
+        }
+
+        /* --- END: Stories Filter Style --- */
+
+        /* --- START: Stream Details Modal --- */
+        .stream-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .stream-modal-content {
+            background: #111827;
+            /* gray-900 */
+            border: 1px solid #374151;
+            /* gray-700 */
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            transform: scale(0.95);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            background: linear-gradient(to bottom, #1f2937, #111827);
+            border-bottom: 1px solid #374151;
+            position: relative;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            background: #ef4444;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .clip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .clip-card-mini {
+            background: #1f2937;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .clip-card-mini:hover {
+            transform: translateY(-2px);
+            border-color: #22d3ee;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- END: Stream Details Modal --- */
     </style>
 </head>
 
@@ -984,8 +1292,8 @@
         window.closeLeaderboard = closeLeaderboard;
 
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V13.3';
-        const API_BASE_URL = 'https://vspo-proxy-git-main-renas-projects-c8ce958b.vercel.app/api';
+        const CURRENT_APP_VERSION = 'V14.0';
+        const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
         const LANGUAGE_KEY = 'vspo_active_language';
@@ -997,7 +1305,16 @@
             isClassifying: false,
             needsClassification: false,
             isUpdatingLive: false,
-            liveLastUpdated: 0, // NEW: Track live data timestamp
+            liveLastUpdated: 0,
+            activeView: 'list', // list, latest, streams (Legacy view state)
+            activeMode: 'cn', // 'cn', 'jp', 'streams' (NEW Top Level Mode)
+            activeLanguage: 'cn', // Keeps track of data language (cn/jp)
+            streamData: [],
+            memberList: [], // NEW: Stores fetched members
+            streamPagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
+            activeStreamFilter: 'all', // all, youtube, twitch, bilibili
+            activeMemberFilterId: null, // NEW: Filter by specific member
+            isLoadingStreams: false,
             livePollingId: null, // NEW: Polling ID for live status
             classificationIntervalId: null,
             lastUpdated: null,
@@ -1021,6 +1338,14 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V14.0': {
+                title: 'V14.0 成員直播頁面！',
+                date: '2026-01-13',
+                features: [
+                    '【史詩更新】新增成員直播頁面',
+                    '【新增功能】可透過直播反向查找剪輯',
+                ]
+            },
             'V13.3': {
                 title: 'V13.3 誰快要直播？',
                 date: '2025-12-24',
@@ -2196,6 +2521,7 @@
             }
             return `${minutes}:${paddedSec}`;
         };
+        const parseDuration = formatDuration; // Alias for modal usage
 
         function createVideoCard(video, showChannel = true) {
             const formatNumber = (num) => (typeof num !== 'number') ? 'N/A' : num >= 10000 ? `${(num / 10000).toFixed(1)}萬` : num.toLocaleString();
@@ -2411,6 +2737,566 @@
                 }
             }
             container.appendChild(createBtn('›', currentPage + 1, currentPage === totalPages));
+            return container;
+        }
+
+        /* --- NEW: Member & Modal Logic --- */
+        async function fetchMembers() {
+            if (state.memberList.length > 0) return; // Cache check
+            try {
+                const res = await fetchApi('members');
+                if (res.success) {
+                    state.memberList = res.members;
+                }
+            } catch (e) {
+                console.error("無法載入成員列表", e);
+            }
+        }
+
+        async function openStreamModal(streamId) {
+            // 1. Create Modal if not exists
+            let modal = document.getElementById('stream-detail-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'stream-detail-modal';
+                modal.className = 'stream-modal-overlay';
+                modal.onclick = (e) => { if (e.target === modal) closeStreamModal(); };
+                modal.innerHTML = `
+                    <div class="stream-modal-content">
+                        <div class="modal-header">
+                            <button class="modal-close-btn" onclick="closeStreamModal()">✕</button>
+                            <div id="modal-stream-info" class="flex gap-4">
+                                <!-- Stream Info Injected Here -->
+                            </div>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Tabs -->
+                            <div class="flex gap-4 border-b border-gray-700 mb-4 pb-2">
+                                <button onclick="switchModalTab('cn')" id="tab-cn" class="text-cyan-400 font-bold border-b-2 border-cyan-400 pb-1">中文精華</button>
+                                <button onclick="switchModalTab('jp')" id="tab-jp" class="text-gray-400 hover:text-gray-200 pb-1 transition-colors">日文精華</button>
+                            </div>
+                            <div id="modal-clip-list" class="clip-grid">
+                                <!-- Clips Injected Here -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // 2. Show Modal & Loading
+            modal.style.display = 'flex';
+            document.getElementById('modal-clip-list').innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">載入中...</div>';
+
+            // 3. Fetch Data
+            try {
+                const res = await fetchApi('stream-details', { params: { id: streamId } });
+                if (res.success) {
+                    console.log("[DEBUG] openStreamModal clips:", res.clips);
+                    renderModalContent(res.stream, res.clips);
+                } else {
+                    document.getElementById('modal-clip-list').innerHTML = '<div class="col-span-full text-center py-10 text-red-400">無法讀取直播資訊</div>';
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('modal-clip-list').innerHTML = '<div class="col-span-full text-center py-10 text-red-400">發生錯誤</div>';
+            }
+        }
+
+        function closeStreamModal() {
+            const modal = document.getElementById('stream-detail-modal');
+            if (modal) modal.style.display = 'none';
+        }
+        // Brace removed
+        window.closeStreamModal = closeStreamModal; // Expose global
+        window.openStreamModal = openStreamModal; // Expose global
+
+        let currentModalClips = [];
+        function renderModalContent(stream, clips) {
+            currentModalClips = clips;
+            // console.log("Processed Modal Clips:", currentModalClips);
+
+            // Render Header
+            const headerHtml = `
+                <img src="${stream.thumbnail}" class="w-32 h-auto rounded-lg shadow-lg aspect-video object-cover bg-gray-800">
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-cyan-400 mb-1">${new Date(stream.startTime).toLocaleString('zh-TW')}</div>
+                    <h3 class="text-xl font-bold text-white mb-2 leading-tight">${stream.title}</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-300">📺 ${stream.channelTitle}</span>
+                        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">共 ${clips.length} 部影片</span>
+                    </div>
+                        ${stream.status === 'live' ? '<span class="px-2 py-0.5 bg-red-600 text-white text-xs rounded">LIVE</span>' : ''}
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-stream-info').innerHTML = headerHtml;
+
+            // Default Tab: CN
+            switchModalTab('cn');
+        }
+
+        function switchModalTab(lang) {
+            // Update Tab Styles
+            const tabCn = document.getElementById('tab-cn');
+            const tabJp = document.getElementById('tab-jp');
+            if (lang === 'cn') {
+                tabCn.className = "text-cyan-400 font-bold border-b-2 border-cyan-400 pb-1";
+                tabJp.className = "text-gray-400 hover:text-gray-200 pb-1 transition-colors";
+            } else {
+                tabJp.className = "text-cyan-400 font-bold border-b-2 border-cyan-400 pb-1";
+                tabCn.className = "text-gray-400 hover:text-gray-200 pb-1 transition-colors";
+            }
+
+            // Filter Clips
+            const filteredClips = currentModalClips.filter(c => c.source === lang);
+            const listContainer = document.getElementById('modal-clip-list');
+
+            if (filteredClips.length === 0) {
+                listContainer.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500 flex flex-col items-center">
+                    <div class="text-4xl mb-2">🎞️</div>
+                    <div>暫無${lang === 'cn' ? '中文' : '日文'}精華</div>
+                </div>`;
+                return;
+            }
+
+            // Render Grid
+            listContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"; // Ensure grid layout
+            listContainer.innerHTML = ''; // Clear
+
+            filteredClips.forEach(clip => {
+                // Map API field names to createVideoCard format
+                const adaptedClip = {
+                    ...clip,
+                    channelTitle: clip.channelTitle || clip.channelName || '未知頻道',
+                    channelAvatarUrl: clip.channelAvatarUrl || clip.avatarUrl || '',
+                    channelId: clip.channelId || '',
+                    viewCount: typeof clip.viewCount === 'number' ? clip.viewCount : 0
+                };
+                const card = createVideoCard(adaptedClip, true);
+                listContainer.appendChild(card);
+            });
+        }
+        window.switchModalTab = switchModalTab; // Expose global
+        async function loadStreams(page = 1) {
+            state.isLoadingStreams = true;
+            state.streamPagination.page = page;
+            render(); // Show loading state in stream view
+
+            // Ensure members are loaded
+            if (state.memberList.length === 0) fetchMembers().then(() => render());
+
+            try {
+                const apiParams = {
+                    endpoint: 'streams',
+                    page,
+                    limit: 20,
+                    _t: Date.now()
+                };
+                if (state.activeStreamFilter !== 'all') {
+                    apiParams.platform = state.activeStreamFilter;
+                }
+                if (state.activeMemberFilterId) {
+                    apiParams.memberId = state.activeMemberFilterId;
+                }
+                const res = await fetchApi('youtube', { params: apiParams });
+
+                if (res.success) {
+                    state.streamData = res.streams || [];
+                    state.streamPagination = res.pagination;
+                }
+
+            } catch (e) {
+                console.error("載入直播存檔失敗:", e);
+                // Optionally set error state
+            } finally {
+                state.isLoadingStreams = false;
+                render();
+            }
+        }
+
+        function createStreamCard(stream) {
+            // [NEW] Sync with Live Status Bar
+            // If this stream matches an active live stream (Same Member + Platform), sync status & thumbnail
+            if (state.liveStreams && state.liveStreams.length > 0 && stream.platform === 'twitch') {
+                const matchingLive = state.liveStreams.find(ls =>
+                    ls.memberName === stream.memberName &&
+                    ls.platform === stream.platform
+                );
+
+                if (matchingLive) {
+                    // Check if it's the same stream (compare titles or simply assume if it's recent)
+                    // Twitch VODs created during stream usually have similar start times or match the current session
+                    const vodTime = new Date(stream.startTime).getTime();
+                    // If stream started within last 12 hours (lenient) and user is live, assume it's this stream
+                    if ((Date.now() - vodTime) < 12 * 60 * 60 * 1000) {
+                        stream.status = 'live'; // Force Live Status
+                        // Use the Live Thumbnail (which works) instead of broken VOD thumbnail
+                        if (matchingLive.thumbnailUrl) {
+                            stream.thumbnail = matchingLive.thumbnailUrl;
+                        }
+                    }
+                }
+            }
+
+            const card = document.createElement('div');
+
+            // Platform Styles (Moved up for Border Logic)
+            let platformColor = 'text-red-400';
+            let platformBg = 'bg-red-600';
+            let platformBorder = 'border-red-500'; // Default Red
+            if (stream.platform === 'twitch') {
+                platformColor = 'text-purple-400';
+                platformBg = 'bg-purple-600';
+                platformBorder = 'border-purple-500';
+            } else if (stream.platform === 'bilibili') {
+                platformColor = 'text-sky-400';
+                platformBg = 'bg-sky-600';
+                platformBorder = 'border-sky-500';
+            }
+
+            // Border Logic
+            let borderClass = 'border border-gray-700'; // Default
+            let extraClasses = '';
+            if (stream.status === 'live') {
+                borderClass = `border-2 ${platformBorder} shadow-[0_0_15px_rgba(0,0,0,0.5)]`; // Use Platform Color for Live
+                extraClasses = 'is-live'; // Adds pulsing animation
+            } else if (stream.hasClips) {
+                borderClass = 'border-2 border-emerald-400/80 shadow-[0_0_10px_rgba(52,211,153,0.3)]'; // Green if clips exist
+            }
+
+            card.className = `stream-card bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-cyan-400/20 transition-all duration-300 flex flex-col ${borderClass} ${extraClasses}`;
+            // card.onclick = () => openStreamModal(stream._id); // REMOVED: Moved to button
+
+            // Video URL Logic (Moved here for clarity)
+            // NO-OP: Platform styles already defined above
+
+            const timeStr = new Date(stream.startTime).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            // Duration Logic
+            let durationStr = '';
+
+            // 1. Try pre-stored duration (Twitch/Bilibili/YouTube ISO)
+            if (stream.duration) {
+                if (typeof stream.duration === 'number') {
+                    // Seconds (Bilibili sometimes)
+                    const hours = Math.floor(stream.duration / 3600);
+                    const minutes = Math.floor((stream.duration % 3600) / 60);
+                    const seconds = Math.floor(stream.duration % 60);
+                    durationStr = hours > 0
+                        ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                        : `${minutes}:${String(seconds).padStart(2, '0')}`;
+                } else if (typeof stream.duration === 'string') {
+                    if (stream.duration.startsWith('PT')) {
+                        // YouTube ISO 8601 (PT1H2M3S)
+                        durationStr = formatDuration(stream.duration);
+                    } else {
+                        // Twitch (3h30m10s) or Bilibili (MM:SS) - Display directly or simple cleanup
+                        // Twitch format "1h30m" is readable, Bilibili "10:00" is readable.
+                        durationStr = stream.duration.replace('h', ':').replace('m', ':').replace('s', '');
+                        // Fix simple replace artifacts if needed (e.g. 1:30: -> 1:30)
+                        if (durationStr.endsWith(':')) durationStr = durationStr.slice(0, -1);
+                    }
+                }
+            }
+
+            // 2. Fallback to Calculation (YouTube Archives if duration missing)
+            if (!durationStr && stream.status !== 'live' && stream.startTime && stream.endTime) {
+                const start = new Date(stream.startTime);
+                const end = new Date(stream.endTime);
+                const diff = end - start;
+                if (diff > 0) {
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    durationStr = hours > 0
+                        ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                        : `${minutes}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+
+            // LIVE Badge (Prominent)
+            let liveBadgeHtml = '';
+            if (stream.status === 'live') {
+                liveBadgeHtml = `<span class="live-badge absolute top-2 left-2"><span class="live-dot"></span>直播中</span>`;
+            }
+
+            // "No Clips" / "Clip Prohibited" Badge
+            let tagsHtml = '';
+            if (stream.isClipProhibited) {
+                tagsHtml += `<span class="absolute top-2 right-2 bg-red-900/80 text-red-200 text-xs px-2 py-1 rounded border border-red-500/50 backdrop-blur z-20 font-bold">🚫 禁止剪輯</span>`;
+            }
+
+            // "Has Clips" Badge (Based on DB lookup) - Only show if NOT live (live takes precedence on left)
+            if (stream.hasClips && stream.status !== 'live') {
+                tagsHtml += `<span class="absolute top-2 left-2 bg-teal-500/90 text-white text-xs px-2 py-1 rounded border border-teal-400/50 backdrop-blur z-20 font-bold shadow-lg shadow-teal-500/20">✨ 有剪輯</span>`;
+            } else if (stream.hasClips && stream.status === 'live') {
+                // If live AND has clips, show clips badge on the right side (below prohibited if exists)
+                tagsHtml += `<span class="absolute top-10 left-2 bg-teal-500/90 text-white text-xs px-2 py-1 rounded border border-teal-400/50 backdrop-blur z-20 font-bold shadow-lg shadow-teal-500/20">✨ 有剪輯</span>`;
+            }
+
+            let videoUrl = stream.url;
+            if (!videoUrl) {
+                videoUrl = stream.platform === 'twitch' ? `https://www.twitch.tv/videos/${stream.streamId}` :
+                    stream.platform === 'bilibili' ?
+                        (stream.status === 'live' ? `https://live.bilibili.com/${stream.streamId}` : `https://www.bilibili.com/video/${stream.streamId}`) :
+                        `https://www.youtube.com/watch?v=${stream.streamId}`;
+            }
+
+            // Twitch Processing Thumbnail Fix
+            if (stream.thumbnail && stream.thumbnail.includes('404_processing')) {
+                stream.thumbnail = 'https://placehold.co/640x360/6441a5/ffffff?text=Processing...';
+            }
+
+            card.innerHTML = `
+                <div class="relative w-full aspect-video bg-gray-900 overflow-hidden">
+                    <a href="${videoUrl}" target="_blank" class="block w-full h-full">
+                        <img src="${stream.thumbnail}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 group-hover:opacity-100" onerror="this.src='https://placehold.co/480x360/1a202c/e53e3e?text=No+Image'">
+                    </a>
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-80 pointer-events-none"></div>
+                    ${liveBadgeHtml}
+                    ${tagsHtml}
+                    ${durationStr ? `<div class="absolute bottom-2 right-2 bg-black/80 text-white text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur border border-white/10 shadow-sm font-mono tracking-wide">${durationStr}</div>` : ''}
+                </div>
+                
+                <div class="p-4 flex flex-col flex-grow relative">
+                     <div class="flex items-start justify-between gap-2 mb-2">
+                        <h3 class="font-bold text-gray-100 leading-snug hover:text-cyan-400 transition-colors line-clamp-2">
+                            <a href="${videoUrl}" target="_blank">${stream.title}</a>
+                        </h3>
+                     </div>
+                     
+                     <div class="mt-auto flex flex-col gap-3 pt-3 border-t border-gray-700/50">
+                        <!-- User Action Row -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                                <span class="text-xs text-gray-400 font-mono bg-gray-700/50 px-1.5 py-0.5 rounded flex-shrink-0">${stream.memberName}</span>
+                                <span class="text-[11px] text-gray-500 truncate" title="${timeStr}">${timeStr}</span>
+                            </div>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <div class="w-2 h-2 rounded-full ${platformBg}"></div>
+                                <span class="text-xs uppercase font-bold tracking-wider ${platformColor}">${stream.platform}</span>
+                            </div>
+                        </div>
+
+                        <!-- Clip Button -->
+                        <button class="w-full py-1.5 ${stream.hasClips ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white'} rounded text-sm font-bold transition-colors flex items-center justify-center gap-2" onclick="openStreamModal('${stream._id}')">
+                            <span>${stream.hasClips ? '✨' : '🎬'}</span> ${stream.hasClips ? '查看精華 (有)' : '尚無精華'}
+                        </button>
+                     </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderStoriesFilter() {
+            // Wrapper with scroll arrows
+            const wrapper = document.createElement('div');
+            wrapper.className = "stories-wrapper";
+
+            // Left scroll button
+            const leftBtn = document.createElement('button');
+            leftBtn.className = "stories-scroll-btn left";
+            leftBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>`;
+            wrapper.appendChild(leftBtn);
+
+            // Stories container
+            const container = document.createElement('div');
+            container.className = "stories-container";
+
+            // "All" Bubble
+            const allItem = document.createElement('div');
+            allItem.className = `story-item ${!state.activeMemberFilterId ? 'active' : ''}`;
+            allItem.onclick = () => {
+                if (state.activeMemberFilterId) {
+                    state.activeMemberFilterId = null;
+                    loadStreams(1);
+                }
+            };
+            allItem.innerHTML = `
+                <div class="story-ring flex items-center justify-center bg-gray-800">
+                     <img src="https://vspo.jp/wp-content/themes/s/favicon.ico" class="w-10 h-10 object-contain">
+                </div>
+                <span class="story-name">全部成員</span>
+            `;
+            container.appendChild(allItem);
+
+            // Members
+            state.memberList.forEach(m => {
+                const item = document.createElement('div');
+                item.className = `story-item ${state.activeMemberFilterId === m.id ? 'active' : ''}`;
+                item.onclick = () => {
+                    if (state.activeMemberFilterId !== m.id) {
+                        state.activeMemberFilterId = m.id;
+                        loadStreams(1);
+                    }
+                };
+
+                const avatar = m.avatarUrl || 'https://placehold.co/64x64/1f2937/9ca3af?text=?';
+
+                item.innerHTML = `
+                    <div class="story-ring">
+                        <img src="${avatar}" class="story-avatar">
+                    </div>
+                    <span class="story-name">${m.name}</span>
+                `;
+                container.appendChild(item);
+            });
+
+            wrapper.appendChild(container);
+
+            // Right scroll button
+            const rightBtn = document.createElement('button');
+            rightBtn.className = "stories-scroll-btn right";
+            rightBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>`;
+            wrapper.appendChild(rightBtn);
+
+            // Scroll button click handlers
+            leftBtn.onclick = () => { container.scrollBy({ left: -200, behavior: 'smooth' }); };
+            rightBtn.onclick = () => { container.scrollBy({ left: 200, behavior: 'smooth' }); };
+
+            // Update arrow visibility based on scroll position
+            const updateArrows = () => {
+                const canScrollLeft = container.scrollLeft > 10;
+                const canScrollRight = container.scrollLeft < container.scrollWidth - container.clientWidth - 10;
+                leftBtn.classList.toggle('visible', canScrollLeft);
+                rightBtn.classList.toggle('visible', canScrollRight);
+            };
+
+            container.addEventListener('scroll', updateArrows);
+            // Initial check after render
+            setTimeout(updateArrows, 100);
+
+            // Enable Mouse Wheel & Drag Scrolling
+            enableHorizontalScroll(container);
+
+            return wrapper;
+        }
+
+        function enableHorizontalScroll(element) {
+            // Mouse Wheel (Vertical -> Horizontal)
+            element.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    element.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+
+            // Drag to Scroll
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            element.addEventListener('mousedown', (e) => {
+                isDown = true;
+                element.classList.add('active'); // Optional: for cursor style
+                startX = e.pageX - element.offsetLeft;
+                scrollLeft = element.scrollLeft;
+            });
+            element.addEventListener('mouseleave', () => { isDown = false; });
+            element.addEventListener('mouseup', () => { isDown = false; });
+            element.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - element.offsetLeft;
+                const walk = (x - startX) * 2; // Scroll-fast
+                element.scrollLeft = scrollLeft - walk;
+            });
+        }
+
+        function createStreamViewElement() {
+            const container = document.createElement('div');
+            container.className = "animate-fade-in";
+
+            // 0. Stories Filter (Members)
+            container.appendChild(renderStoriesFilter());
+
+            // 1. Filters (Platform)
+            const filterContainer = document.createElement('div');
+            filterContainer.className = "flex space-x-2 mb-6 overflow-x-auto pb-2 no-scrollbar";
+            const filters = [
+                { id: 'all', label: '全部' },
+                { id: 'youtube', label: 'YouTube' },
+                { id: 'twitch', label: 'Twitch' },
+                { id: 'bilibili', label: 'Bilibili' }
+            ];
+            filters.forEach(f => {
+                const btn = document.createElement('button');
+                const isActive = state.activeStreamFilter === f.id;
+                btn.className = `px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap \${isActive ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'}`;
+                btn.textContent = f.label;
+                btn.onclick = () => {
+                    if (state.activeStreamFilter !== f.id) {
+                        state.activeStreamFilter = f.id;
+                        loadStreams(1);
+                    }
+                };
+                filterContainer.appendChild(btn);
+            });
+            container.appendChild(filterContainer);
+
+            // 2. Content
+            if (state.isLoadingStreams) {
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
+                for (let i = 0; i < 8; i++) grid.appendChild(createSkeleton('card'));
+                container.appendChild(grid);
+            } else if (!state.streamData || state.streamData.length === 0) {
+                const noMsg = document.createElement('div');
+                noMsg.className = "text-center text-gray-400 py-20 bg-gray-800/30 rounded-lg";
+                noMsg.innerHTML = '<p class="text-xl mb-2">沒有找到直播存檔 (-ι_- )</p>';
+                container.appendChild(noMsg);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
+                state.streamData.forEach(stream => {
+                    grid.appendChild(createStreamCard(stream));
+                });
+                container.appendChild(grid);
+
+                // 3. Pagination
+                if (state.streamPagination.totalPages > 1) {
+                    const pagContainer = document.createElement('div');
+                    pagContainer.className = "flex justify-center items-center space-x-2 mt-8 flex-wrap gap-y-2";
+                    const { page, totalPages } = state.streamPagination;
+
+                    const createPageBtn = (p, label, disabled = false, active = false) => {
+                        const btn = document.createElement('button');
+                        btn.className = `w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center transition-all duration-200 \${active ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-500/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'}`;
+                        if (disabled) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+                        btn.textContent = label || p;
+                        if (!disabled && !active) btn.onclick = () => { loadStreams(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                        return btn;
+                    };
+
+                    pagContainer.appendChild(createPageBtn(page - 1, '‹', page === 1));
+
+                    // Simple Logic: 1 ... prev curr next ... total
+                    if (page > 3) {
+                        pagContainer.appendChild(createPageBtn(1, '1'));
+                        pagContainer.appendChild(document.createTextNode('...'));
+                    }
+                    if (page > 1 && page <= 3) { // Close to start
+                        for (let i = 1; i < page; i++) pagContainer.appendChild(createPageBtn(i, i));
+                    } else if (page > 3) {
+                        pagContainer.appendChild(createPageBtn(page - 1, page - 1));
+                    }
+
+                    pagContainer.appendChild(createPageBtn(page, page, false, true));
+
+                    if (page < totalPages - 2) {
+                        pagContainer.appendChild(createPageBtn(page + 1, page + 1));
+                        pagContainer.appendChild(document.createTextNode('...'));
+                        pagContainer.appendChild(createPageBtn(totalPages, totalPages));
+                    } else {
+                        for (let i = page + 1; i <= totalPages; i++) pagContainer.appendChild(createPageBtn(i, i));
+                    }
+
+                    pagContainer.appendChild(createPageBtn(page + 1, '›', page === totalPages));
+                    container.appendChild(pagContainer);
+                }
+            }
+
             return container;
         }
 
@@ -2741,8 +3627,9 @@
                 <span class="text-lg align-middle text-gray-500 whitespace-nowrap hover:text-cyan-400 cursor-pointer transition-colors" onclick="showLatestUpdateLogs()" title="點擊查看更新日誌">${CURRENT_APP_VERSION}</span>
             </h1>
             <div id="lang-switcher" class="mt-6 flex justify-center items-center space-x-4">
-                <button data-lang="cn" class="lang-switcher-btn ${activeLanguage === 'cn' ? 'active' : ''}">中文精華</button>
-                <button data-lang="jp" class="lang-switcher-btn ${activeLanguage === 'jp' ? 'active' : ''}">日文精華</button>
+                <button data-mode="cn" class="lang-switcher-btn ${state.activeMode === 'cn' ? 'active' : ''}">中文精華</button>
+                <button data-mode="jp" class="lang-switcher-btn ${state.activeMode === 'jp' ? 'active' : ''}">日文精華</button>
+                <button data-mode="streams" class="lang-switcher-btn ${state.activeMode === 'streams' ? 'active' : ''}">直播存檔</button>
             </div>`;
 
 
@@ -2792,25 +3679,61 @@
                 }
             }
 
+            const isStreamsMode = state.activeMode === 'streams';
             const mainGrid = document.createElement('div');
-            mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
+
+            // Adjust Grid Layout based on mode
+            if (isStreamsMode) {
+                mainGrid.className = "container mx-auto px-4"; // Full width
+            } else {
+                mainGrid.className = "container mx-auto px-4 grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-8";
+            }
 
             const filterSection = document.createElement('aside');
             filterSection.className = "md:col-start-1";
-            const filterContainer = document.createElement('div');
-            filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28 md:flex md:flex-col md:max-h-[calc(100vh-9rem)]";
-            filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
-            filterContainer.appendChild(createMemberFilterListHTML(vspoJPMembers, otherMemberGroups, activeMemberFilter));
-            filterSection.appendChild(filterContainer);
+
+            // Only add filters if NOT in streams mode
+            if (!isStreamsMode) {
+                const filterContainer = document.createElement('div');
+                filterContainer.className = "bg-gray-800/50 p-4 rounded-lg md:sticky md:top-28 md:flex md:flex-col md:max-h-[calc(100vh-9rem)]";
+                filterContainer.innerHTML = `<h3 class="text-xl font-bold mb-4 text-gray-300 border-b border-gray-600 pb-2">成員篩選</h3>`;
+                filterContainer.appendChild(createMemberFilterListHTML(vspoJPMembers, otherMemberGroups, activeMemberFilter));
+                filterSection.appendChild(filterContainer);
+                mainGrid.appendChild(filterSection); // Only append if logic allows
+            } else {
+                // In stream mode, we skip appending filterSection to mainGrid
+            }
 
             const rightContent = document.createElement('main');
-            rightContent.className = "md:col-start-2 min-w-0";
+            if (isStreamsMode) {
+                rightContent.className = "min-w-0";
+            } else {
+                rightContent.className = "md:col-start-2 min-w-0";
+            }
+
+            // Removed duplicate rightContent declaration
 
             if (isLoading) {
                 const videoSkeletons = Array.from({ length: 12 }).map(() => createSkeleton('card').outerHTML).join('');
                 rightContent.innerHTML = `<section style="min-height: 720px;"><div class="flex items-center justify-between mb-6"><div class="h-8 bg-gray-700 rounded w-1/3 animate-pulse"></div><div class="h-8 bg-gray-700 rounded w-1/4 animate-pulse"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">${videoSkeletons}</div></section>`;
             } else if (apiError) {
                 rightContent.innerHTML = createErrorDisplay(apiError);
+            } else if (state.activeMode === 'streams') {
+                // ============================================================
+                // STREAMS MODE (Top Level)
+                // ============================================================
+                const videosSection = document.createElement('section');
+                videosSection.id = 'streams-section';
+
+                // Header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = "mb-6 flex items-center";
+                headerDiv.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">成員直播存檔</h2>`;
+                videosSection.appendChild(headerDiv);
+
+                videosSection.appendChild(createStreamViewElement());
+                rightContent.appendChild(videosSection);
+
             } else {
                 const visibleVideos = allVideos.filter(video => !blacklist.some(b => b.id === video.channelId));
                 console.log(`[Rentner Debug]All: ${allVideos.length}, Visible(Blacklist check): ${visibleVideos.length} `);
@@ -2848,7 +3771,7 @@
                         // Legacy Filter Controls (Latest 12 Button)
                         const filterControlsHTML = (() => {
                             const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
-                            const viewModeButtons = `<div class="flex space-x-2"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
+                            const viewModeButtons = `<div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
 
                             // Desktop Type Buttons
                             const desktopTypeButtons = `<div class="flex space-x-2 mr-4"><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" data-type="all" ${isClassifying ? 'disabled' : ''}>全部</button><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" data-type="video" ${isClassifying ? 'disabled' : ''}>只看影片</button><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" data-type="short" ${isClassifying ? 'disabled' : ''}>只看Shorts</button></div>`;
@@ -2901,35 +3824,40 @@
 
                         videosSection.appendChild(videosHeader);
 
-                        // Video Grid
-                        const viewContainer = document.createElement('div');
-                        viewContainer.style.minHeight = '720px';
-                        if (activeVideoTypeFilter === 'short') { viewContainer.classList.add('view-mode-shorts-only'); }
-                        const videosToDisplay = filteredVideos; // Uses legacy filtering logic (state.activeVideoTypeFilter etc but CN doesn't have type tabs usually?)
+                        // Video Grid OR Stream View
+                        // Removed Stream View Logic from here (now top level)
 
-                        if (activeView === 'latest') {
-                            const grid = document.createElement('div');
-                            const gridClasses = activeVideoTypeFilter === 'short'
-                                ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                                : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
-                            grid.className = gridClasses;
-                            const sliceCount = window.innerWidth < 1280 ? 10 : 12;
-                            videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
-                            viewContainer.appendChild(grid);
-                        } else {
-                            const listContainer = document.createElement('div');
-                            listContainer.className = 'space-y-3';
-                            const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
-                            const startIndex = (currentPage - 1) * itemsPerPage;
-                            const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
-                            paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
-                            viewContainer.appendChild(listContainer);
-                            if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
+                        {
+                            const viewContainer = document.createElement('div');
+                            viewContainer.style.minHeight = '720px';
+                            if (activeVideoTypeFilter === 'short') { viewContainer.classList.add('view-mode-shorts-only'); }
+                            const videosToDisplay = filteredVideos; // Uses legacy filtering logic (state.activeVideoTypeFilter etc but CN doesn't have type tabs usually?)
+
+                            if (activeView === 'latest') {
+                                const grid = document.createElement('div');
+                                const gridClasses = activeVideoTypeFilter === 'short'
+                                    ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                                    : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+                                grid.className = gridClasses;
+                                const sliceCount = window.innerWidth < 1280 ? 10 : 12;
+                                videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
+                                viewContainer.appendChild(grid);
+                            } else {
+                                const listContainer = document.createElement('div');
+                                listContainer.className = 'space-y-3';
+                                const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
+                                const startIndex = (currentPage - 1) * itemsPerPage;
+                                const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
+                                paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
+                                viewContainer.appendChild(listContainer);
+                                if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
+                            }
+                            videosSection.appendChild(viewContainer);
+                            rightContent.appendChild(videosSection);
                         }
-                        videosSection.appendChild(viewContainer);
-                        rightContent.appendChild(videosSection);
 
-                        // Channel List (Bottom)
+                        // Channel List (Bottom) - Only show if not streams
+
                         const channelListSection = document.createElement('section');
                         const channelListHeader = document.createElement('div');
                         channelListHeader.className = 'flex items-baseline mb-6 gap-x-3 mt-12';
@@ -2958,6 +3886,8 @@
                             channelListSection.innerHTML += `<p class="text-center text-gray-400 p-8 bg-gray-800 rounded-lg">找不到一個月內發布過「${activeMemberFilter}」剪輯的頻道。</p>`;
                         }
                         rightContent.appendChild(channelListSection);
+
+
 
                     } else {
                         // ============================================================
@@ -2989,9 +3919,12 @@
                                 btn.textContent = label;
                                 btn.onclick = () => {
                                     state.activeTab = id;
-                                    state.visibleCount = 24;
-                                    // Removed: state.activeChannelFilter = null; // Do NOT clear filter on tab switch
-                                    render();
+                                    if (id === 'streams') {
+                                        loadStreams(1);
+                                    } else {
+                                        state.visibleCount = 24;
+                                        render();
+                                    }
                                 };
                             }
                             return btn;
@@ -3001,6 +3934,7 @@
                         tabsWrapper.appendChild(createTabBtn('video', '只看影片', isLock));
                         tabsWrapper.appendChild(createTabBtn('short', '只看Shorts', isLock));
                         tabsWrapper.appendChild(createTabBtn('channels', '精華頻道列表'));
+                        // Removed streams tab
 
                         tabContainer.appendChild(tabsWrapper);
 
@@ -3153,15 +4087,27 @@
 
             document.querySelectorAll('#lang-switcher .lang-switcher-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const lang = e.currentTarget.dataset.lang;
-                    if (lang !== state.activeLanguage) {
-                        state.activeLanguage = lang;
-                        localStorage.setItem(LANGUAGE_KEY, lang);
-                        state.activeMemberFilter = 'all';
-                        state.activeChannelFilter = null;
-                        state.activeVideoTypeFilter = 'all'; // Reset video type filter
-                        state.currentPage = 1;
-                        initializeApp();
+                    const mode = e.currentTarget.dataset.mode;
+                    if (mode !== state.activeMode) {
+                        state.activeMode = mode;
+                        // localStorage.setItem(LANGUAGE_KEY, mode); // Might want to save mode instead
+
+                        // Mode logic
+                        if (mode === 'cn' || mode === 'jp') {
+                            if (state.activeLanguage !== mode) {
+                                state.activeLanguage = mode;
+                                localStorage.setItem(LANGUAGE_KEY, mode);
+                                state.activeMemberFilter = 'all';
+                                state.activeChannelFilter = null;
+                                state.activeVideoTypeFilter = 'all';
+                                state.currentPage = 1;
+                                initializeApp(); // Reload Content
+                            } else {
+                                render(); // Use existing content
+                            }
+                        } else if (mode === 'streams') {
+                            loadStreams(1); // Fetch streams
+                        }
                     }
                 });
             });
@@ -3209,6 +4155,7 @@
             // --- Legacy Listeners Restored for CN Mode (Attached to specific elements recreated by render) ---
             document.getElementById('view-latest-btn')?.addEventListener('click', () => { state.activeView = 'latest'; render(); });
             document.getElementById('view-all-btn')?.addEventListener('click', () => { state.activeView = 'all'; state.currentPage = 1; render(); });
+            // Removed view-streams-btn listener
             document.querySelectorAll('.pagination-btn').forEach(btn => { btn.addEventListener('click', (e) => { const page = parseInt(e.currentTarget.dataset.page, 10); if (page && page !== state.currentPage) { state.currentPage = page; render(() => window.scrollTo({ top: 0, behavior: 'smooth' })); } }); });
 
             document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filterList = document.getElementById('member-filter-list-container'); const scrollPosition = { top: filterList?.scrollTop || 0, left: filterList?.scrollLeft || 0 }; state.activeChannelFilter = null; state.activeMemberFilter = e.currentTarget.dataset.filter; state.currentPage = 1; render(() => { const newFilterList = document.getElementById('member-filter-list-container'); if (newFilterList) { newFilterList.scrollTop = scrollPosition.top; newFilterList.scrollLeft = scrollPosition.left; } window.scrollTo({ top: 0, behavior: 'smooth' }); }); }); });
