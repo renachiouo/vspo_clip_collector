@@ -1307,6 +1307,7 @@
             needsClassification: false,
             isUpdatingLive: false,
             liveLastUpdated: 0,
+            lastArchiveSync: null, // NEW: Track last time archives were synced
             activeView: 'list', // list, latest, streams (Legacy view state)
             activeMode: 'cn', // 'cn', 'jp', 'streams' (NEW Top Level Mode)
             activeLanguage: 'cn', // Keeps track of data language (cn/jp)
@@ -2923,6 +2924,7 @@
                 if (res.success) {
                     state.streamData = res.streams || [];
                     state.streamPagination = res.pagination;
+                    if (res.lastSync) state.lastArchiveSync = new Date(res.lastSync);
                 }
 
             } catch (e) {
@@ -3773,8 +3775,25 @@
 
                 // Header
                 const headerDiv = document.createElement('div');
-                headerDiv.className = "mb-6 flex items-center";
-                headerDiv.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">成員直播存檔</h2>`;
+                headerDiv.className = "mb-6 flex flex-col md:flex-row md:items-center justify-between gap-y-2";
+
+                let lastSyncHtml = '';
+                if (state.lastArchiveSync) {
+                    const syncTimeStr = state.lastArchiveSync.toLocaleString('zh-TW', {
+                        month: 'numeric', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                        hour12: false
+                    });
+                    lastSyncHtml = `<span class="text-xs md:text-sm text-gray-500 font-medium bg-gray-800/80 px-3 py-1.5 rounded-full border border-gray-700/50 flex items-center gap-1.5 shadow-inner">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        資料最後同步: ${syncTimeStr}
+                    </span>`;
+                }
+
+                headerDiv.innerHTML = `
+                    <h2 class="text-2xl md:text-3xl font-bold border-l-4 border-cyan-400 pl-4">成員直播存檔</h2>
+                    ${lastSyncHtml}
+                `;
                 videosSection.appendChild(headerDiv);
 
                 videosSection.appendChild(createStreamViewElement());
