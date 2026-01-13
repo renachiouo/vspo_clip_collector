@@ -2972,7 +2972,7 @@
             // Video URL Logic (Moved here for clarity)
             // NO-OP: Platform styles already defined above
 
-            const timeStr = new Date(stream.startTime).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const timeStr = new Date(stream.startTime).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 
             // Duration Logic
             let durationStr = '';
