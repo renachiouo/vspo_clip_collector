@@ -1307,7 +1307,7 @@
             needsClassification: false,
             isUpdatingLive: false,
             liveLastUpdated: 0,
-            lastArchiveSync: null, // NEW: Track last time archives were synced
+            lastYouTubeSync: null, // NEW: Specific YouTube Sync Time
             activeView: 'list', // list, latest, streams (Legacy view state)
             activeMode: 'cn', // 'cn', 'jp', 'streams' (NEW Top Level Mode)
             activeLanguage: 'cn', // Keeps track of data language (cn/jp)
@@ -2924,7 +2924,7 @@
                 if (res.success) {
                     state.streamData = res.streams || [];
                     state.streamPagination = res.pagination;
-                    if (res.lastSync) state.lastArchiveSync = new Date(res.lastSync);
+                    if (res.lastSync) state.lastYouTubeSync = new Date(res.lastSync);
                 }
 
             } catch (e) {
@@ -3697,8 +3697,8 @@
             // If in Streams mode, prioritize showing the Archive Sync Time
             // precise sync time is more relevant than generic frontend fetch time here.
             let timeDisplayHtml = '';
-            if (state.activeMode === 'streams' && state.lastArchiveSync) {
-                const syncTimeStr = state.lastArchiveSync.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            if (state.activeMode === 'streams' && state.lastYouTubeSync) {
+                const syncTimeStr = state.lastYouTubeSync.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                 timeDisplayHtml = `<span class="whitespace-nowrap flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>直播存檔同步: <span class="font-mono text-emerald-300">${syncTimeStr}</span></span>`;
             } else if (lastUpdated) {
                 timeDisplayHtml = `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString('zh-TW', { hour12: false })}</span>`;
