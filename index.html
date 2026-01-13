@@ -3684,6 +3684,17 @@
 
 
 
+            // [Context-Aware Timestamp Logic]
+            // If in Streams mode, prioritize showing the Archive Sync Time
+            // precise sync time is more relevant than generic frontend fetch time here.
+            let timeDisplayHtml = '';
+            if (state.activeMode === 'streams' && state.lastArchiveSync) {
+                const syncTimeStr = state.lastArchiveSync.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                timeDisplayHtml = `<span class="whitespace-nowrap flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>直播存檔同步: <span class="font-mono text-emerald-300">${syncTimeStr}</span></span>`;
+            } else if (lastUpdated) {
+                timeDisplayHtml = `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString('zh-TW', { hour12: false })}</span>`;
+            }
+
             const topBar = document.createElement('div');
             topBar.className = "sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 mb-8";
             topBar.innerHTML = `
@@ -3691,7 +3702,7 @@
                 <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
                     <span class="whitespace-nowrap">👀 總人次: <span class="font-semibold text-teal-400">${totalVisits.toLocaleString()}</span></span>
                     <span class="whitespace-nowrap">☀️ 今日人次: <span class="font-semibold text-amber-400">${todayVisits.toLocaleString()}</span></span>
-                    ${lastUpdated ? `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString()}</span>` : ''}
+                    ${timeDisplayHtml}
                 </div>
                 <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
                     <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>回報遺漏頻道/影片</a>
@@ -3773,27 +3784,9 @@
                 const videosSection = document.createElement('section');
                 videosSection.id = 'streams-section';
 
-                // Header
                 const headerDiv = document.createElement('div');
-                headerDiv.className = "mb-6 flex flex-col md:flex-row md:items-center justify-between gap-y-2";
-
-                let lastSyncHtml = '';
-                if (state.lastArchiveSync) {
-                    const syncTimeStr = state.lastArchiveSync.toLocaleString('zh-TW', {
-                        month: 'numeric', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                        hour12: false
-                    });
-                    lastSyncHtml = `<span class="text-xs md:text-sm text-gray-500 font-medium bg-gray-800/80 px-3 py-1.5 rounded-full border border-gray-700/50 flex items-center gap-1.5 shadow-inner">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        資料最後同步: ${syncTimeStr}
-                    </span>`;
-                }
-
-                headerDiv.innerHTML = `
-                    <h2 class="text-2xl md:text-3xl font-bold border-l-4 border-cyan-400 pl-4">成員直播存檔</h2>
-                    ${lastSyncHtml}
-                `;
+                headerDiv.className = "mb-6 flex items-center";
+                headerDiv.innerHTML = `<h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">成員直播存檔</h2>`;
                 videosSection.appendChild(headerDiv);
 
                 videosSection.appendChild(createStreamViewElement());
