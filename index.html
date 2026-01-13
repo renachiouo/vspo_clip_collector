@@ -2930,8 +2930,13 @@
                 if (matchingLive) {
                     // Forward Sync: Member is live, check if this is the current stream
                     const vodTime = new Date(stream.startTime).getTime();
-                    // If stream started within last 12 hours and member is live, assume it's this stream
-                    if ((Date.now() - vodTime) < 12 * 60 * 60 * 1000) {
+                    const liveTime = new Date(matchingLive.startTime).getTime();
+
+                    // Match by startTime (within 5 minutes tolerance)
+                    // This prevents older archives from the same member on the same day being marked as Live
+                    const isTimeMatched = Math.abs(vodTime - liveTime) < 5 * 60 * 1000;
+
+                    if (isTimeMatched) {
                         stream.status = matchingLive.status; // Sync status (live/upcoming)
                         // Use the Live Thumbnail (which works) instead of potentially broken VOD thumbnail
                         if (matchingLive.thumbnailUrl && stream.platform !== 'youtube') {
