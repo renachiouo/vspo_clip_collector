@@ -2343,9 +2343,7 @@
                 for (let i = 0; i < 13; i++) {
                     const keyData = breakdown[`key_${i}`] || { total: 0, details: {} };
                     const keyTotal = keyData.total || 0;
-                    const isCurrent = (i === activeKeyIdx && dateOverride === null); // Only highlight current if viewing today (conceptually, or just always highlight index)
-                    // Actually currentKeyIndex from backend is "Now". It doesn't change if looking at history.
-                    // But highlighting it only makes sense if we imply "This is the active key NOW".
+                    const isCurrent = (i === activeKeyIdx && dateOverride === null);
 
                     // Grid Item
                     const gridItem = document.createElement('div');
