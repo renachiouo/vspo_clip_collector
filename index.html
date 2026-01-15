@@ -4356,8 +4356,6 @@
             state.isLoading = true;
             state.liveStreams = [];
             render();
-
-            // Fetch Live Status Background
             // Fetch Live Status Background
             fetchApi('live').then(res => {
                 if (res.success) {
