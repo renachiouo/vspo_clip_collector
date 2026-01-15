@@ -2466,9 +2466,9 @@
             const body = options.body ? JSON.stringify(options.body) : null;
             const headers = { 'Content-Type': 'application/json', ...options.headers };
 
-            // 新增 timeout 邏輯 (預設 10 秒)
+            // 新增 timeout 邏輯 (預設 30 秒，適應 Vercel Cold Start)
             const controller = new AbortController();
-            const timeout = options.timeout || 10000;
+            const timeout = options.timeout || 30000;
             const timeoutId = setTimeout(() => controller.abort(), timeout);
 
             try {
