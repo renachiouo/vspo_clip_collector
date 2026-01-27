@@ -1295,8 +1295,13 @@
         window.openLeaderboard = openLeaderboard;
         window.closeLeaderboard = closeLeaderboard;
 
+        // Helper to determine items per page based on screen width
+        const getResponsiveItemsPerPage = () => {
+            return window.innerWidth < 768 ? 8 : 12;
+        };
+
         // --- 全域變數與狀態管理 ---
-        const CURRENT_APP_VERSION = 'V14.0';
+        const CURRENT_APP_VERSION = 'V14.1';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
@@ -1311,7 +1316,7 @@
             isUpdatingLive: false,
             liveLastUpdated: 0,
             lastYouTubeSync: null, // NEW: Specific YouTube Sync Time
-            activeView: 'list', // list, latest, streams (Legacy view state)
+
             activeMode: 'cn', // 'cn', 'jp', 'streams' (NEW Top Level Mode)
             activeLanguage: 'cn', // Keeps track of data language (cn/jp)
             streamData: [],
@@ -1326,11 +1331,11 @@
             apiError: null,
             totalVisits: 0,
             todayVisits: 0,
-            activeView: 'latest',
+            activeView: 'all',
             activeVideoTypeFilter: 'all',
             isFilterDropdownOpen: false,
             currentPage: 1,
-            itemsPerPage: 10,
+            itemsPerPage: getResponsiveItemsPerPage(),
             activeMemberFilter: 'all',
             activeChannelFilter: null,
             activeLanguage: 'cn',
@@ -1346,6 +1351,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V14.1': {
+                title: 'V14.1 中文影片UI更新',
+                date: '2026-01-28',
+                features: [
+                    '【介面修改】中文影片介面分頁式顯示',
+                ]
+            },
             'V14.0': {
                 title: 'V14.0 成員直播頁面！',
                 date: '2026-01-13',
@@ -3851,11 +3863,9 @@
                         videosHeader.className = "flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4";
                         const titleHTML = `<div class="flex items-center"><h2 class="text-3xl font-bold border-l-4 border-cyan-400 pl-4">精華影片</h2><div class="tooltip ml-2"><button class="text-sm bg-gray-600 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="說明">?</button><div class="tooltiptext"><p class="font-semibold mb-2">說明：</p><p>1. 伺服器快取每 20 分鐘更新一次</p><p>2. 為關鍵字搜尋，故可能出現：</p><div class="pl-4"><p>a. 含VSPO關鍵字的非VSPO烤肉</p><p>b. 含中文關鍵字的外文剪輯</p><p class="mt-2">有以上情形請至頁首回報處回報</p></div></div></div></div>`;
 
-                        // Legacy Filter Controls (Latest 12 Button)
-                        const filterControlsHTML = (() => {
-                            const latestButtonText = window.innerWidth < 1280 ? '最新10部' : '最新12部';
-                            const viewModeButtons = `<div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1"><button id="view-latest-btn" class="tab-btn ${activeView === 'latest' ? 'active' : ''}">${latestButtonText}</button><button id="view-all-btn" class="tab-btn ${activeView === 'all' ? 'active' : ''}">一個月內</button></div>`;
 
+                        // Filter Controls (Type Selection) - Restored
+                        const filterControlsHTML = (() => {
                             // Desktop Type Buttons
                             const desktopTypeButtons = `<div class="flex space-x-2 mr-4"><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'all' ? 'active' : ''}" data-type="all" ${isClassifying ? 'disabled' : ''}>全部</button><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'video' ? 'active' : ''}" data-type="video" ${isClassifying ? 'disabled' : ''}>只看影片</button><button class="tab-btn type-filter-btn ${activeVideoTypeFilter === 'short' ? 'active' : ''}" data-type="short" ${isClassifying ? 'disabled' : ''}>只看Shorts</button></div>`;
 
@@ -3879,9 +3889,9 @@
                             return `<div class="flex w-full md:w-auto items-center justify-between md:justify-start md:space-x-4">
                                 <div class="hidden md:block">${desktopTypeButtons}</div>
                                 <div class="md:hidden">${mobileDropdown}</div>
-                                <div class="md:border-l-2 border-gray-600 md:pl-4">${viewModeButtons}</div>
                             </div>`;
                         })();
+
                         videosHeader.innerHTML = `${titleHTML} <div class="w-full md:w-auto flex-shrink-0">${filterControlsHTML}</div>`;
 
                         // --- Restore Channel Filter Badge for CN Mode ---
@@ -3916,25 +3926,20 @@
                             if (activeVideoTypeFilter === 'short') { viewContainer.classList.add('view-mode-shorts-only'); }
                             const videosToDisplay = filteredVideos; // Uses legacy filtering logic (state.activeVideoTypeFilter etc but CN doesn't have type tabs usually?)
 
-                            if (activeView === 'latest') {
-                                const grid = document.createElement('div');
-                                const gridClasses = activeVideoTypeFilter === 'short'
-                                    ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                                    : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
-                                grid.className = gridClasses;
-                                const sliceCount = window.innerWidth < 1280 ? 10 : 12;
-                                videosToDisplay.slice(0, sliceCount).forEach(video => grid.appendChild(createVideoCard(video)));
-                                viewContainer.appendChild(grid);
-                            } else {
-                                const listContainer = document.createElement('div');
-                                listContainer.className = 'space-y-3';
-                                const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
-                                const startIndex = (currentPage - 1) * itemsPerPage;
-                                const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
-                                paginatedVideos.forEach(video => listContainer.appendChild(createVideoListItem(video)));
-                                viewContainer.appendChild(listContainer);
-                                if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
-                            }
+                            const grid = document.createElement('div');
+                            const gridClasses = activeVideoTypeFilter === 'short'
+                                ? 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                                : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+                            grid.className = gridClasses;
+
+                            const totalPages = Math.ceil(videosToDisplay.length / itemsPerPage);
+                            const startIndex = (currentPage - 1) * itemsPerPage;
+                            const paginatedVideos = videosToDisplay.slice(startIndex, startIndex + itemsPerPage);
+
+                            paginatedVideos.forEach(video => grid.appendChild(createVideoCard(video)));
+                            viewContainer.appendChild(grid);
+
+                            if (totalPages > 1) { viewContainer.appendChild(createPaginationControls(totalPages, currentPage)); }
                             videosSection.appendChild(viewContainer);
                             rightContent.appendChild(videosSection);
                         }
@@ -4287,6 +4292,19 @@
             window.addEventListener('resize', () => {
                 const currentWidth = window.innerWidth;
                 const breakpoint = 1280;
+                // Update Pagination Size dynamically
+                const newItemsPerPage = getResponsiveItemsPerPage();
+                if (state.itemsPerPage !== newItemsPerPage) {
+                    state.itemsPerPage = newItemsPerPage;
+                    // Adjust current page to keep approximately the same position? 
+                    // Or just safe reset to 1? Reset to 1 is safer/simpler UI behavior on major resize.
+                    // But to be user friendly, let's keep it simple: re-render.
+                    // If we just re-render, the slice index might change content shift.
+                    // Let's reset page to 1 on layout shift to avoid confusion.
+                    state.currentPage = 1;
+                    render();
+                }
+
                 if ((lastWidth < breakpoint && currentWidth >= breakpoint) || (lastWidth >= breakpoint && currentWidth < breakpoint)) { if (state.activeView === 'latest') { render(); } }
                 lastWidth = currentWidth;
             });
