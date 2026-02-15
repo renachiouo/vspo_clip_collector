@@ -1301,6 +1301,16 @@
         };
 
         // --- 全域變數與狀態管理 ---
+        (function () {
+            try {
+                fetch('https://vspo-proxy.onrender.com', {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                }).catch(() => { });
+                console.log('✅ Worker wake-up request sent');
+            } catch (e) { }
+        })();
+
         const CURRENT_APP_VERSION = 'V14.1';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
@@ -1737,6 +1747,7 @@
                     <button class="admin-tab-btn ${activeTab === 'blacklist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
+                    <button class="admin-tab-btn ${activeTab === 'pending_videos' ? 'active' : ''} whitespace-nowrap" data-tab="pending_videos">待審核影片 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-orange-500/20 text-orange-300" id="pending-videos-count">0</span></button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                     <button class="admin-tab-btn ${activeTab === 'admin_logs' ? 'active' : ''} whitespace-nowrap" data-tab="admin_logs">操作日誌</button>
                     <button class="admin-tab-btn ${activeTab === 'api_status' ? 'active' : ''} whitespace-nowrap" data-tab="api_status">API 狀態</button>
@@ -1808,6 +1819,15 @@
                                 <button class="admin-btn-add bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold" id="btn-add-video-blacklist">新增封鎖</button>
                             </div>
                             <div id="video-blacklist-container" class="space-y-2">
+                                <p class="text-gray-500 text-center py-4">載入中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tab-pending_videos" class="admin-tab-content ${activeTab === 'pending_videos' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-orange-400 mb-2">待審核影片</h4>
+                            <p class="text-sm text-gray-400 mb-4">這些影片缺少成員直播連結，請審核後決定是否顯示在網頁上。</p>
+                            <div id="pending-videos-container" class="space-y-3">
                                 <p class="text-gray-500 text-center py-4">載入中...</p>
                             </div>
                         </div>
@@ -2156,6 +2176,105 @@
             }
 
             // 回填功能邏輯
+
+            // Pending Videos Section
+            const pendingVideosTabBtn = modal.querySelector('.admin-tab-btn[data-tab="pending_videos"]');
+            if (pendingVideosTabBtn) {
+                const container = modal.querySelector('#pending-videos-container');
+                const countBadge = modal.querySelector('#pending-videos-count');
+
+                const loadPendingVideos = async () => {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">載入中...</p>';
+                    try {
+                        const res = await fetchApi('youtube', {
+                            method: 'POST',
+                            body: { action: 'get_pending_videos', password }
+                        });
+
+                        if (countBadge) countBadge.textContent = res.count || 0;
+
+                        if (res.videos && res.videos.length > 0) {
+                            container.innerHTML = res.videos.map(video => {
+                                const publishDate = new Date(video.publishedAt).toLocaleDateString('zh-TW');
+                                const viewCount = video.viewCount ? video.viewCount.toLocaleString() : 'N/A';
+                                return `
+                                    <div class="bg-gray-700 p-3 rounded-lg flex gap-3">
+                                        <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" class="block w-32 h-20 flex-shrink-0 group relative no-underline">
+                                            <img src="${video.thumbnail || ''}" class="w-full h-full object-cover rounded group-hover:opacity-80 transition-opacity" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzMiLz48L3N2Zz4='" />
+                                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m-6-6L10 14" />
+                                                </svg>
+                                            </div>
+                                        </a>
+                                        <div class="flex-1 min-w-0">
+                                            <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" class="hover:text-sky-400 transition-colors no-underline block">
+                                                <h5 class="text-white font-bold text-sm mb-1 truncate" title="${video.title || 'Unknown'}">${video.title || 'Unknown'}</h5>
+                                            </a>
+                                            <div class="text-xs text-gray-400 space-y-0.5">
+                                                <p>頻道：${video.channelTitle || 'Unknown'}</p>
+                                                <p>發布：${publishDate}</p>
+                                                <p>觀看：${viewCount}</p>
+                                                <p class="text-yellow-400">⚠️ 缺少成員直播連結</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col gap-2 justify-center">
+                                            <button class="admin-btn admin-btn-approve" data-video-id="${video.id}">
+                                                ✓ 核准
+                                            </button>
+                                            <button class="admin-btn admin-btn-reject" data-video-id="${video.id}">
+                                                ✕ 拒絕
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                            // Attach event listeners
+                            container.querySelectorAll('.admin-btn-approve').forEach(btn => {
+                                btn.addEventListener('click', async () => {
+                                    const videoId = btn.dataset.videoId;
+                                    try {
+                                        await fetchApi('youtube', {
+                                            method: 'POST',
+                                            body: { action: 'approve_video', videoId, password }
+                                        });
+                                        btn.closest('.bg-gray-700').remove();
+                                        if (countBadge) countBadge.textContent = parseInt(countBadge.textContent || '0') - 1;
+                                    } catch (e) {
+                                        alert('核准失敗：' + e.message);
+                                    }
+                                });
+                            });
+
+                            container.querySelectorAll('.admin-btn-reject').forEach(btn => {
+                                btn.addEventListener('click', async () => {
+                                    const videoId = btn.dataset.videoId;
+                                    try {
+                                        await fetchApi('youtube', {
+                                            method: 'POST',
+                                            body: { action: 'reject_video', videoId, password }
+                                        });
+                                        btn.closest('.bg-gray-700').remove();
+                                        if (countBadge) countBadge.textContent = parseInt(countBadge.textContent || '0') - 1;
+                                    } catch (e) {
+                                        alert('拒絕失敗：' + e.message);
+                                    }
+                                });
+                            });
+                        } else {
+                            container.innerHTML = '<p class="text-gray-400 text-center py-8">沒有待審核影片</p>';
+                        }
+                    } catch (e) {
+                        container.innerHTML = `<p class="text-red-400 text-center py-4">載入失敗：${e.message}</p>`;
+                    }
+                };
+
+                // Initial load if tab is active, or when tab is clicked
+                if (pendingVideosTabBtn.classList.contains('active')) loadPendingVideos();
+                pendingVideosTabBtn.addEventListener('click', loadPendingVideos);
+            }
+
             const backfillTabBtn = modal.querySelector('.admin-tab-btn[data-tab="backfill"]');
             if (backfillTabBtn) {
                 const keywordsContainer = modal.querySelector('#backfill-keywords-container');
