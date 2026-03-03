@@ -1193,11 +1193,41 @@
         }
 
         /* --- END: Stream Details Modal --- */
+
+        /* --- START: Special Event Background --- */
+        #event-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1.2s ease-in-out;
+        }
+
+        #event-background.visible {
+            opacity: 1;
+        }
+
+        #event-background::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.82);
+            pointer-events: none;
+        }
+        /* --- END: Special Event Background --- */
     </style>
 </head>
 
 
 <body class="bg-gray-900 text-white font-sans">
+    <!-- Special Event Background Layer -->
+    <div id="event-background"></div>
 
     <!-- 公告欄容器 -->
     <div id="announcement-banner">
@@ -1313,6 +1343,55 @@
 
         const CURRENT_APP_VERSION = 'V14.1';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
+
+        // --- Special Event Background ---
+        async function checkSpecialEvent() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/special-event`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success || !data.events || data.events.length === 0) return;
+
+                const bgEl = document.getElementById('event-background');
+                if (!bgEl) return;
+
+                const events = data.events;
+                let currentIndex = 0;
+
+                // Preload all images
+                const preloadPromises = events.map(ev => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                        img.src = ev.thumbnail;
+                    });
+                });
+                await Promise.all(preloadPromises);
+
+                // Set first background and show
+                bgEl.style.backgroundImage = `url(${events[0].thumbnail})`;
+                requestAnimationFrame(() => bgEl.classList.add('visible'));
+
+                // If multiple events, rotate every 8 seconds with fade
+                if (events.length > 1) {
+                    setInterval(() => {
+                        bgEl.classList.remove('visible');
+                        setTimeout(() => {
+                            currentIndex = (currentIndex + 1) % events.length;
+                            bgEl.style.backgroundImage = `url(${events[currentIndex].thumbnail})`;
+                            requestAnimationFrame(() => bgEl.classList.add('visible'));
+                        }, 1200); // Wait for fade-out transition
+                    }, 8000);
+                }
+
+                console.log(`[Event BG] Loaded ${events.length} special event(s):`, events.map(e => e.title));
+            } catch (e) {
+                console.warn('[Event BG] Failed to check:', e);
+            }
+        }
+        // Fire and forget - don't block page load
+        checkSpecialEvent();
         const BLACKLIST_KEY = 'vspo_channel_blacklist';
         const LAST_SEEN_VERSION_KEY = 'vspo_last_seen_version';
         const LANGUAGE_KEY = 'vspo_active_language';
