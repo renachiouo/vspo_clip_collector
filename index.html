@@ -1836,6 +1836,7 @@
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
                     <button class="admin-tab-btn ${activeTab === 'pending_videos' ? 'active' : ''} whitespace-nowrap" data-tab="pending_videos">待審核影片 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-orange-500/20 text-orange-300" id="pending-videos-count">0</span></button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
+                    <button class="admin-tab-btn ${activeTab === 'custom_bg' ? 'active' : ''} whitespace-nowrap" data-tab="custom_bg">🎨 自訂背景</button>
                     <button class="admin-tab-btn ${activeTab === 'admin_logs' ? 'active' : ''} whitespace-nowrap" data-tab="admin_logs">操作日誌</button>
                     <button class="admin-tab-btn ${activeTab === 'api_status' ? 'active' : ''} whitespace-nowrap" data-tab="api_status">API 狀態</button>
                 </div>
@@ -2062,6 +2063,43 @@
                                  <div class="text-[10px] text-gray-600 italic text-center border-t border-gray-700 pt-2 mt-2">
                                     * 數據基於本地推算，實際 Google Console 使用量可能略有不同。<br>
                                     搜尋成本: 100 單位。其他 (影片詳情等): 1 單位。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tab-custom_bg" class="admin-tab-content ${activeTab === 'custom_bg' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-lg font-semibold text-purple-400 mb-2">🎨 自訂背景管理</h4>
+                            <p class="text-sm text-gray-400 mb-4">新增的背景圖會與成員特殊事件（生日/周年）一起輪播。<br>事件背景優先顯示，自訂背景排在後面。</p>
+                            <div class="space-y-3 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">圖片 URL</label>
+                                    <input type="text" id="custom-bg-url-input" placeholder="https://example.com/image.jpg" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">活動說明（選填，僅顯示於管理面板）</label>
+                                    <input type="text" id="custom-bg-label-input" placeholder="例：春季特別活動" class="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div id="custom-bg-preview" class="hidden">
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">圖片預覽</label>
+                                    <div class="relative w-full h-32 bg-gray-900 rounded overflow-hidden border border-gray-600">
+                                        <img id="custom-bg-preview-img" class="w-full h-full object-cover" src="" alt="預覽">
+                                        <div class="absolute inset-0 bg-gray-900/80 pointer-events-none"></div>
+                                        <div class="absolute bottom-2 left-2 text-xs text-gray-300 bg-black/50 px-2 py-1 rounded">暗化效果預覽</div>
+                                    </div>
+                                </div>
+                                <button id="add-custom-bg-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors">新增背景</button>
+                            </div>
+                            <div class="border-t border-gray-700 pt-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h5 class="text-sm font-semibold text-gray-300">目前設定的背景</h5>
+                                    <button id="clear-all-custom-bg-btn" class="text-xs text-red-400 hover:text-red-300 transition-colors">全部清除</button>
+                                </div>
+                                <div id="custom-bg-list" class="space-y-2">
+                                    ${(listsData.custom_backgrounds || []).length === 0 ? '<p class="text-gray-500 text-center py-4">目前沒有自訂背景。</p>' : (listsData.custom_backgrounds || []).map(bg => {
+                const dateStr = bg.createdAt ? new Date(bg.createdAt).toLocaleString('zh-TW') : '未知';
+                return `<div class="flex items-center gap-3 bg-gray-700 p-2 rounded" data-bg-id="${bg.id}"><div class="w-20 h-12 flex-shrink-0 rounded overflow-hidden border border-gray-600"><img src="${bg.url}" class="w-full h-full object-cover" onerror="this.style.display='none'"></div><div class="flex-1 min-w-0"><p class="text-sm text-white truncate">${bg.label || '（無說明）'}</p><p class="text-xs text-gray-500 truncate">${bg.url}</p><p class="text-xs text-gray-600">${dateStr}</p></div><button class="btn-remove-custom-bg text-red-400 hover:text-red-300 text-sm font-semibold px-2 flex-shrink-0" data-bg-id="${bg.id}">刪除</button></div>`;
+            }).join('')}
                                 </div>
                             </div>
                         </div>
@@ -2473,6 +2511,98 @@
 
                 if (apiStatusTabBtn.classList.contains('active')) loadApiStatus(password);
                 apiStatusTabBtn.addEventListener('click', () => loadApiStatus(password));
+            }
+
+            // 自訂背景 Tab 邏輯
+            const customBgTabBtn = modal.querySelector('.admin-tab-btn[data-tab="custom_bg"]');
+            if (customBgTabBtn) {
+                const urlInput = modal.querySelector('#custom-bg-url-input');
+                const labelInput = modal.querySelector('#custom-bg-label-input');
+                const previewDiv = modal.querySelector('#custom-bg-preview');
+                const previewImg = modal.querySelector('#custom-bg-preview-img');
+                const addBtn = modal.querySelector('#add-custom-bg-btn');
+                const clearAllBtn = modal.querySelector('#clear-all-custom-bg-btn');
+
+                // 即時預覽
+                if (urlInput && previewDiv && previewImg) {
+                    let debounceTimer;
+                    urlInput.addEventListener('input', () => {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            const url = urlInput.value.trim();
+                            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                                previewImg.src = url;
+                                previewDiv.classList.remove('hidden');
+                            } else {
+                                previewDiv.classList.add('hidden');
+                            }
+                        }, 500);
+                    });
+                }
+
+                // 新增背景
+                if (addBtn) {
+                    addBtn.addEventListener('click', async () => {
+                        const url = urlInput.value.trim();
+                        if (!url) { alert('請輸入圖片 URL'); return; }
+                        if (!url.startsWith('http://') && !url.startsWith('https://')) { alert('URL 必須以 http:// 或 https:// 開頭'); return; }
+
+                        const label = labelInput.value.trim();
+                        const originalText = addBtn.innerText;
+                        addBtn.innerText = '新增中...';
+                        addBtn.disabled = true;
+
+                        try {
+                            await fetchApi('admin/manage', {
+                                method: 'POST',
+                                body: { action: 'set_custom_background', url, label, password }
+                            });
+                            urlInput.value = '';
+                            labelInput.value = '';
+                            previewDiv.classList.add('hidden');
+                            alert('背景已新增！');
+                            await showAdminUI(password, 'custom_bg');
+                        } catch (error) {
+                            alert('新增失敗: ' + error.message);
+                        } finally {
+                            addBtn.innerText = originalText;
+                            addBtn.disabled = false;
+                        }
+                    });
+                }
+
+                // 刪除單張背景
+                modal.querySelectorAll('.btn-remove-custom-bg').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const backgroundId = btn.dataset.bgId;
+                        if (!confirm('確定要刪除這張背景嗎？')) return;
+                        try {
+                            await fetchApi('admin/manage', {
+                                method: 'POST',
+                                body: { action: 'remove_custom_background', backgroundId, password }
+                            });
+                            await showAdminUI(password, 'custom_bg');
+                        } catch (error) {
+                            alert('刪除失敗: ' + error.message);
+                        }
+                    });
+                });
+
+                // 全部清除
+                if (clearAllBtn) {
+                    clearAllBtn.addEventListener('click', async () => {
+                        if (!confirm('確定要清除所有自訂背景嗎？')) return;
+                        try {
+                            await fetchApi('admin/manage', {
+                                method: 'POST',
+                                body: { action: 'clear_custom_backgrounds', password }
+                            });
+                            await showAdminUI(password, 'custom_bg');
+                        } catch (error) {
+                            alert('清除失敗: ' + error.message);
+                        }
+                    });
+                }
             }
         }
 
