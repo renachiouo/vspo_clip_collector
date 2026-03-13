@@ -2177,6 +2177,7 @@
             modal.querySelectorAll('.admin-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const { action, listType, channelId, inputId } = e.currentTarget.dataset;
+                    if (!action) return; // Skip bypass-specific buttons (handled separately)
                     let finalChannelId = channelId;
                     if (action === 'add') {
                         const input = document.getElementById(inputId);
@@ -3324,7 +3325,7 @@
             }
 
             // Filter Clips
-            const filteredClips = currentModalClips.filter(c => c.source === lang);
+            const filteredClips = currentModalClips.filter(c => c.source === lang || c.source === 'both');
             const listContainer = document.getElementById('modal-clip-list');
 
             if (filteredClips.length === 0) {
