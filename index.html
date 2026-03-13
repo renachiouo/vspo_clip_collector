@@ -1837,6 +1837,7 @@
                     <button class="admin-tab-btn ${activeTab === 'pending_videos' ? 'active' : ''} whitespace-nowrap" data-tab="pending_videos">待審核影片 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-orange-500/20 text-orange-300" id="pending-videos-count">0</span></button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                     <button class="admin-tab-btn ${activeTab === 'custom_bg' ? 'active' : ''} whitespace-nowrap" data-tab="custom_bg">🎨 自訂背景</button>
+                    <button class="admin-tab-btn ${activeTab === 'bypass_channels' ? 'active' : ''} whitespace-nowrap" data-tab="bypass_channels">🔓 免許諾番号 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-300">${listsData.bypass_channels?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'admin_logs' ? 'active' : ''} whitespace-nowrap" data-tab="admin_logs">操作日誌</button>
                     <button class="admin-tab-btn ${activeTab === 'api_status' ? 'active' : ''} whitespace-nowrap" data-tab="api_status">API 狀態</button>
                 </div>
@@ -1857,6 +1858,50 @@
                     <div id="tab-blacklist_jp" class="admin-tab-content ${activeTab === 'blacklist_jp' ? 'active' : ''} space-y-2">
                          <div class="admin-add-form"><input type="text" id="add-blacklist-jp-input" placeholder="輸入要封鎖的頻道 ID..."><button class="admin-btn admin-btn-add bg-red-600 hover:bg-red-700" data-action="add" data-list-type="blacklist_jp" data-input-id="add-blacklist-jp-input">手動封鎖</button></div>
                         ${createListItems(listsData.blacklist_jp, 'blacklist_jp')}
+                    </div>
+                    <div id="tab-bypass_channels" class="admin-tab-content ${activeTab === 'bypass_channels' ? 'active' : ''} space-y-4">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
+                            <h4 class="text-lg font-semibold text-purple-400 mb-2">🔓 免許諾番号頻道</h4>
+                            <p class="text-sm text-gray-400 mb-4">這些頻道的影片不需要包含「許諾番号」即可進入系統，但仍需包含 VSPO 成員關鍵字。可勾選歸類為中文/日文頻道。</p>
+                            <div class="flex gap-2 items-end">
+                                <div class="flex-grow">
+                                    <input type="text" id="add-bypass-input" placeholder="輸入頻道 ID..." class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div class="flex gap-3 items-center px-3 py-2 bg-gray-700 rounded border border-gray-600">
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-sm">
+                                        <input type="checkbox" id="bypass-lang-cn" value="cn" checked class="rounded text-purple-500 focus:ring-purple-500 bg-gray-600 border-gray-500">
+                                        <span class="text-green-300">中文</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer text-sm">
+                                        <input type="checkbox" id="bypass-lang-jp" value="jp" class="rounded text-purple-500 focus:ring-purple-500 bg-gray-600 border-gray-500">
+                                        <span class="text-blue-300">日文</span>
+                                    </label>
+                                </div>
+                                <button class="admin-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded" id="btn-add-bypass">新增</button>
+                            </div>
+                        </div>
+                        <div class="space-y-2" id="bypass-channels-list">
+                        ${(listsData.bypass_channels || []).map(channel => `
+                            <div class="admin-list-item">
+                                <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" class="flex items-center gap-3 flex-grow min-w-0">
+                                    <img src="${channel.avatar}" alt="" class="w-10 h-10 rounded-full flex-shrink-0" referrerpolicy="no-referrer">
+                                    <div class="channel-name">
+                                        <span class="name">${channel.name}</span>
+                                        <span class="id">${channel.id}</span>
+                                    </div>
+                                </a>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <div class="flex gap-1">
+                                        ${channel.languages?.includes('cn') ? '<span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">中文</span>' : ''}
+                                        ${channel.languages?.includes('jp') ? '<span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">日文</span>' : ''}
+                                    </div>
+                                    <button class="admin-btn text-xs px-2 py-1 bg-gray-600 hover:bg-gray-500 text-gray-200 rounded bypass-edit-lang-btn" data-channel-id="${channel.id}" data-current-langs='${JSON.stringify(channel.languages || [])}'>✏️</button>
+                                    <button class="admin-btn admin-btn-delete bypass-remove-btn" data-channel-id="${channel.id}">刪除</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${(!listsData.bypass_channels || listsData.bypass_channels.length === 0) ? '<p class="text-gray-500 text-center py-8">尚無免許諾番号頻道</p>' : ''}
+                        </div>
                     </div>
                     <div id="tab-backfill" class="admin-tab-content ${activeTab === 'backfill' ? 'active' : ''} space-y-4">
 
@@ -2142,6 +2187,52 @@
                     if (!confirm(`確定要對頻道 ${finalChannelId} 執行「${action}」操作嗎？`)) return;
 
                     await performAdminAction(action, finalChannelId, listType, password);
+                });
+            });
+
+            // [NEW] Bypass Channel Event Handlers
+            const addBypassBtn = modal.querySelector('#btn-add-bypass');
+            if (addBypassBtn) {
+                addBypassBtn.addEventListener('click', async () => {
+                    const channelId = modal.querySelector('#add-bypass-input').value.trim();
+                    if (!channelId) { alert('頻道 ID 不能為空！'); return; }
+
+                    const langs = [];
+                    if (modal.querySelector('#bypass-lang-cn').checked) langs.push('cn');
+                    if (modal.querySelector('#bypass-lang-jp').checked) langs.push('jp');
+                    if (langs.length === 0) { alert('請至少選擇一個語言（中文或日文）！'); return; }
+
+                    if (!confirm(`確定要將頻道 ${channelId} 加入免許諾番号名單嗎？\n語言: ${langs.map(l => l === 'cn' ? '中文' : '日文').join(', ')}`)) return;
+
+                    await performAdminAction('add_bypass_channel', channelId, null, password, { languages: langs });
+                });
+            }
+
+            modal.querySelectorAll('.bypass-remove-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const channelId = btn.dataset.channelId;
+                    if (!confirm(`確定要從免許諾番号名單中移除頻道 ${channelId} 嗎？`)) return;
+                    await performAdminAction('remove_bypass_channel', channelId, null, password);
+                });
+            });
+
+            modal.querySelectorAll('.bypass-edit-lang-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const channelId = btn.dataset.channelId;
+                    const currentLangs = JSON.parse(btn.dataset.currentLangs || '[]');
+
+                    const hasCn = currentLangs.includes('cn');
+                    const hasJp = currentLangs.includes('jp');
+
+                    // Simple toggle UI using confirm dialogs
+                    const newLangs = [];
+                    if (confirm(`中文頻道？\n（目前: ${hasCn ? '✅ 是' : '❌ 否'}）\n\n點擊「確定」= 是，「取消」= 否`)) newLangs.push('cn');
+                    if (confirm(`日文頻道？\n（目前: ${hasJp ? '✅ 是' : '❌ 否'}）\n\n點擊「確定」= 是，「取消」= 否`)) newLangs.push('jp');
+
+                    if (newLangs.length === 0) { alert('請至少選擇一個語言！'); return; }
+
+                    const langText = newLangs.map(l => l === 'cn' ? '中文' : '日文').join(', ');
+                    await performAdminAction('update_bypass_channel', channelId, null, password, { languages: newLangs });
                 });
             });
 
