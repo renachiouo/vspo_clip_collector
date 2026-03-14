@@ -3344,6 +3344,8 @@
                 // Map API field names to createVideoCard format
                 const adaptedClip = {
                     ...clip,
+                    // Auto-switch title for bilingual channels based on active tab
+                    title: (lang === 'cn' && clip.titleZh) ? clip.titleZh : clip.title,
                     channelTitle: clip.channelTitle || clip.channelName || '未知頻道',
                     channelAvatarUrl: clip.channelAvatarUrl || clip.avatarUrl || '',
                     channelId: clip.channelId || '',
