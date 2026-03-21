@@ -3428,6 +3428,10 @@
                         if (matchingLive.thumbnailUrl && stream.platform !== 'youtube') {
                             stream.thumbnail = matchingLive.thumbnailUrl;
                         }
+                    } else if (stream.status === 'live') {
+                        // [FIX] Reverse Sync even when member IS live but this is a DIFFERENT stream
+                        // Without this fix, old 'live' streams from the same member would never get corrected
+                        stream.status = 'ended';
                     }
                 } else if (stream.status === 'live') {
                     // Reverse Sync: Stream shows 'live' but member is NOT in live bar
