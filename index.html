@@ -2059,7 +2059,7 @@
                                         <span class="text-gray-400 text-xs uppercase tracking-wider font-semibold">今日總使用量</span>
                                         <div class="mt-2 flex items-baseline gap-1">
                                             <span id="quota-total-used" class="text-3xl font-bold text-white">--</span>
-                                            <span class="text-gray-500 text-sm">/ ~130,000</span>
+                                            <span id="quota-total-limit" class="text-gray-500 text-sm">/ --</span>
                                         </div>
                                         <div class="w-full bg-gray-600 rounded-full h-1.5 mt-2 overflow-hidden">
                                             <div id="quota-progress-bar" class="bg-blue-500 h-1.5 rounded-full" style="width: 0%"></div>
@@ -2069,7 +2069,7 @@
                                         <span class="text-gray-400 text-xs uppercase tracking-wider font-semibold">當前使用的 Key</span>
                                         <div class="mt-2 flex flex-col items-center">
                                             <span id="quota-active-key" class="text-3xl font-bold text-green-400 font-mono">--</span>
-                                            <span class="text-gray-500 text-xs mt-1">Key 編號 (0-12)</span>
+                                            <span id="quota-key-range" class="text-gray-500 text-xs mt-1">Key 編號 (--)</span>
                                         </div>
                                      </div>
                                      <div class="bg-gray-700/50 p-4 rounded border border-gray-600 flex flex-col items-center justify-center">
@@ -2736,25 +2736,24 @@
                 const params = { password };
                 if (targetDate) params.date = targetDate;
 
-                // Reuse fetchApi, accessing local backend path
-                // Note: /api/quota is public in backend code, but we can pass password if needed later.
-                // It is currently public, so password isn't strictly checked by backend for just reading, 
-                // but good to keep pattern. 
-                // The fetchApi wrapper appends params to URL.
                 const res = await fetchApi('quota', { params });
 
                 if (!res.success) throw new Error(res.error || '無法獲取配額數據');
 
                 // Render Overview
+                const totalKeys = res.totalKeys || 13;
+                const totalQuotaLimit = totalKeys * 10000;
                 const totalUsed = res.totalUsed || 0;
                 document.getElementById('quota-total-used').innerText = totalUsed.toLocaleString();
-                document.getElementById('quota-total-used').className = `text-3xl font-bold ${totalUsed > 100000 ? 'text-red-500' : totalUsed > 80000 ? 'text-yellow-400' : 'text-white'}`;
+                document.getElementById('quota-total-used').className = `text-3xl font-bold ${totalUsed > totalQuotaLimit * 0.8 ? 'text-red-500' : totalUsed > totalQuotaLimit * 0.6 ? 'text-yellow-400' : 'text-white'}`;
+                document.getElementById('quota-total-limit').innerText = `/ ~${totalQuotaLimit.toLocaleString()}`;
 
-                const percent = Math.min(100, (totalUsed / 130000) * 100);
+                const percent = Math.min(100, (totalUsed / totalQuotaLimit) * 100);
                 document.getElementById('quota-progress-bar').style.width = `${percent}%`;
                 document.getElementById('quota-progress-bar').className = `h-1.5 rounded-full ${percent > 90 ? 'bg-red-500' : percent > 70 ? 'bg-yellow-500' : 'bg-blue-500'}`;
 
                 document.getElementById('quota-active-key').innerText = (res.currentKeyIndex !== undefined) ? `Key ${res.currentKeyIndex}` : 'N/A';
+                document.getElementById('quota-key-range').innerText = `Key 編號 (0-${totalKeys - 1})`;
                 document.getElementById('quota-date-display').innerText = res.date;
 
                 // Calculate and display local time range
@@ -2798,7 +2797,7 @@
                 // Prepare total usage for each key
                 const breakdown = res.breakdown || {};
 
-                for (let i = 0; i < 13; i++) {
+                for (let i = 0; i < totalKeys; i++) {
                     const keyData = breakdown[`key_${i}`] || { total: 0, details: {} };
                     const keyTotal = keyData.total || 0;
                     const isCurrent = (i === activeKeyIdx && dateOverride === null);
