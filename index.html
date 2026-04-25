@@ -1349,7 +1349,7 @@
             } catch (e) { }
         })();
 
-        const CURRENT_APP_VERSION = 'V14.3';
+        const CURRENT_APP_VERSION = 'V14.4';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
 
         // --- Special Event Background ---
@@ -1448,6 +1448,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V14.4': {
+                title: 'V14.4 新增直播結束時間顯示',
+                date: '2026-04-26',
+                features: [
+                    '【新增功能】新增直播結束時間顯示',
+                ]
+            },
             'V14.3': {
                 title: 'V14.3 Juno Umezono',
                 date: '2026-03-29',
@@ -3310,7 +3317,10 @@
             const headerHtml = `
                 <img src="${stream.thumbnail}" class="w-32 h-auto rounded-lg shadow-lg aspect-video object-cover bg-gray-800">
                 <div class="flex-1 min-w-0">
-                    <div class="text-xs text-cyan-400 mb-1">${new Date(stream.startTime).toLocaleString('zh-TW')}</div>
+                    <div class="text-xs text-cyan-400 mb-1">
+                        ${new Date(stream.startTime).toLocaleString('zh-TW')}
+                        ${stream.endTime ? ' ~ ' + new Date(stream.endTime).toLocaleString('zh-TW') : ''}
+                    </div>
                     <h3 class="text-xl font-bold text-white mb-2 leading-tight">${stream.title}</h3>
                     <div class="flex items-center gap-2">
                         <span class="text-sm text-gray-300">📺 ${stream.channelTitle}</span>
