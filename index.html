@@ -4877,8 +4877,12 @@
                 const visitCountedInSession = sessionStorage.getItem('vspo_visit_counted');
                 if (!visitCountedInSession) {
                     sessionStorage.setItem('vspo_visit_counted', 'true');
-                } else {
-                    apiParams.no_increment = 'true';
+                    // [OPTIMIZATION] Fire-and-forget: track visit independently from cached /api/youtube
+                    fetchApi('track').then(trackData => {
+                        state.totalVisits = trackData.totalVisits || 0;
+                        state.todayVisits = trackData.todayVisits || 0;
+                        render();
+                    }).catch(err => console.warn('訪問追蹤失敗 (非致命):', err));
                 }
 
                 const dataPackage = await fetchApi('youtube', { params: apiParams });
@@ -4894,9 +4898,9 @@
 
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp);
-                state.totalVisits = dataPackage.totalVisits || 0;
-                state.totalVisits = dataPackage.totalVisits || 0;
-                state.todayVisits = dataPackage.todayVisits || 0;
+                // Fallback: use cached visits from /api/youtube if /api/track hasn't responded yet
+                if (!state.totalVisits) state.totalVisits = dataPackage.totalVisits || 0;
+                if (!state.todayVisits) state.todayVisits = dataPackage.todayVisits || 0;
 
                 // --- START: 處理公告顯示 ---
                 const announcement = dataPackage.announcement;
