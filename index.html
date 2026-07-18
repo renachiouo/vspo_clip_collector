@@ -1349,7 +1349,7 @@
             } catch (e) { }
         })();
 
-        const CURRENT_APP_VERSION = 'V14.4';
+        const CURRENT_APP_VERSION = 'V14.5';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
 
         // --- Special Event Background ---
@@ -1366,34 +1366,47 @@
                 const events = data.events;
                 let currentIndex = 0;
 
-                // Preload all images
-                const preloadPromises = events.map(ev => {
+                // Preload all images and only keep the ones that load successfully to prevent empty background
+                const preloadResults = await Promise.all(events.map(ev => {
                     return new Promise((resolve) => {
+                        if (!ev.thumbnail) {
+                            resolve(null);
+                            return;
+                        }
                         const img = new Image();
-                        img.onload = resolve;
-                        img.onerror = resolve;
+                        img.onload = () => resolve(ev);
+                        img.onerror = () => {
+                            console.warn(`[Event BG] Failed to load background image: ${ev.thumbnail} (${ev.title})`);
+                            resolve(null);
+                        };
                         img.src = ev.thumbnail;
                     });
-                });
-                await Promise.all(preloadPromises);
+                }));
+
+                const validEvents = preloadResults.filter(ev => ev !== null);
+
+                if (validEvents.length === 0) {
+                    console.log('[Event BG] No valid background images loaded.');
+                    return;
+                }
 
                 // Set first background and show
-                bgEl.style.backgroundImage = `url(${events[0].thumbnail})`;
+                bgEl.style.backgroundImage = `url(${validEvents[0].thumbnail})`;
                 requestAnimationFrame(() => bgEl.classList.add('visible'));
 
-                // If multiple events, rotate every 8 seconds with fade
-                if (events.length > 1) {
+                // If multiple events, rotate every 16 seconds with fade
+                if (validEvents.length > 1) {
                     setInterval(() => {
                         bgEl.classList.remove('visible');
                         setTimeout(() => {
-                            currentIndex = (currentIndex + 1) % events.length;
-                            bgEl.style.backgroundImage = `url(${events[currentIndex].thumbnail})`;
+                            currentIndex = (currentIndex + 1) % validEvents.length;
+                            bgEl.style.backgroundImage = `url(${validEvents[currentIndex].thumbnail})`;
                             requestAnimationFrame(() => bgEl.classList.add('visible'));
                         }, 1200); // Wait for fade-out transition
-                    }, 8000);
+                    }, 16000);
                 }
 
-                console.log(`[Event BG] Loaded ${events.length} special event(s):`, events.map(e => e.title));
+                console.log(`[Event BG] Loaded ${validEvents.length} special event(s):`, validEvents.map(e => e.title));
             } catch (e) {
                 console.warn('[Event BG] Failed to check:', e);
             }
@@ -1448,6 +1461,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V14.5': {
+                title: 'V14.5 網站背景BUG修正',
+                date: '2026-07-18',
+                features: [
+                    '【修復BUG】修復了刪檔直播所可能帶來的背景圖片顯示問題',
+                ]
+            },
             'V14.4': {
                 title: 'V14.4 新增直播結束時間顯示',
                 date: '2026-04-26',
