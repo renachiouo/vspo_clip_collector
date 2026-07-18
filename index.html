@@ -1374,7 +1374,14 @@
                             return;
                         }
                         const img = new Image();
-                        img.onload = () => resolve(ev);
+                        img.onload = () => {
+                            if (img.naturalWidth <= 120) {
+                                console.warn(`[Event BG] Discarded thumbnail (too small/placeholder, width: ${img.naturalWidth}px): ${ev.thumbnail} (${ev.title})`);
+                                resolve(null);
+                            } else {
+                                resolve(ev);
+                            }
+                        };
                         img.onerror = () => {
                             console.warn(`[Event BG] Failed to load background image: ${ev.thumbnail} (${ev.title})`);
                             resolve(null);
