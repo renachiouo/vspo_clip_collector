@@ -1349,7 +1349,7 @@
             } catch (e) { }
         })();
 
-        const CURRENT_APP_VERSION = 'V14.5';
+        const CURRENT_APP_VERSION = 'V14.6';
         const API_BASE_URL = 'https://vspo-proxy.vercel.app/api';
 
         // --- Special Event Background ---
@@ -1445,6 +1445,7 @@
             livePollingId: null, // NEW: Polling ID for live status
             classificationIntervalId: null,
             lastUpdated: null,
+            lastAdminActionTime: null,
             apiError: null,
             totalVisits: 0,
             todayVisits: 0,
@@ -1468,6 +1469,13 @@
 
         // 版本更新日誌
         const UPDATE_LOGS = {
+            'V14.6': {
+                title: 'V14.6 網站UI改善',
+                date: '2026-08-17',
+                features: [
+                    '【介面更新】移除與新增部分功能',
+                ]
+            },
             'V14.5': {
                 title: 'V14.5 網站背景BUG修正',
                 date: '2026-07-18',
@@ -1883,7 +1891,7 @@
                     <button class="admin-tab-btn ${activeTab === 'blacklist_jp' ? 'active' : ''} whitespace-nowrap" data-tab="blacklist_jp">日文黑名單 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-300">${listsData.blacklist_jp?.length || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'backfill' ? 'active' : ''} whitespace-nowrap" data-tab="backfill">資料回填</button>
                     <button class="admin-tab-btn ${activeTab === 'video_blacklist' ? 'active' : ''} whitespace-nowrap" data-tab="video_blacklist">影片黑名單</button>
-                    <button class="admin-tab-btn ${activeTab === 'pending_videos' ? 'active' : ''} whitespace-nowrap" data-tab="pending_videos">待審核影片 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-orange-500/20 text-orange-300" id="pending-videos-count">0</span></button>
+                    <button class="admin-tab-btn ${activeTab === 'pending_videos' ? 'active' : ''} whitespace-nowrap" data-tab="pending_videos">待審核影片 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-orange-500/20 text-orange-300" id="pending-videos-count">${listsData.pending_videos_count || 0}</span></button>
                     <button class="admin-tab-btn ${activeTab === 'announcement' ? 'active' : ''} whitespace-nowrap" data-tab="announcement">公告管理</button>
                     <button class="admin-tab-btn ${activeTab === 'custom_bg' ? 'active' : ''} whitespace-nowrap" data-tab="custom_bg">🎨 自訂背景</button>
                     <button class="admin-tab-btn ${activeTab === 'bypass_channels' ? 'active' : ''} whitespace-nowrap" data-tab="bypass_channels">🔓 免許諾番号 <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-300">${listsData.bypass_channels?.length || 0}</span></button>
@@ -4217,6 +4225,13 @@
                 timeDisplayHtml = `<span class="whitespace-nowrap">資料時間: ${lastUpdated.toLocaleTimeString('zh-TW', { hour12: false })}</span>`;
             }
 
+            let lastAdminActionHtml = '';
+            if (state.lastAdminActionTime) {
+                const adminTime = new Date(state.lastAdminActionTime);
+                const adminTimeStr = adminTime.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+                lastAdminActionHtml = `<span class="whitespace-nowrap font-semibold text-purple-400 flex items-center" title="上次管理員操作時間: ${adminTime.toLocaleString('zh-TW', { hour12: false })}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>管理員操作: ${adminTimeStr}</span>`;
+            }
+
             const topBar = document.createElement('div');
             topBar.className = "sticky top-0 z-20 py-4 mb-8";
             topBar.innerHTML = `
@@ -4227,7 +4242,7 @@
                     ${timeDisplayHtml}
                 </div>
                 <div class="flex justify-center items-center space-x-4 flex-wrap gap-y-2">
-                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPXcKRZdp6KgVcw_yiXhDy979wrl3y42knIh5fIjP1tGUZBQ/viewform?usp=sharing&ouid=104059498550822009260" target="_blank" rel="noopener noreferrer" class="whitespace-nowrap font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>回報遺漏頻道/影片</a>
+                    ${lastAdminActionHtml}
                     <button id="manage-blacklist-btn" class="whitespace-nowrap font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.367zM14.89 13.477a6 6 0 01-8.367-8.367l8.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" /></svg>管理個人黑名單</button>
                     <button id="check-update-btn" class="whitespace-nowrap font-semibold text-cyan-400 hover:text-cyan-300 transition-colors duration-200 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zM9 13a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd" /></svg>檢查更新</button>
                 </div>
@@ -4925,6 +4940,7 @@
 
                 state.allVideos = videos.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
                 state.lastUpdated = new Date(dataPackage.timestamp);
+                if (dataPackage.lastAdminActionTime) state.lastAdminActionTime = dataPackage.lastAdminActionTime;
                 // Fallback: use cached visits from /api/youtube if /api/track hasn't responded yet
                 if (!state.totalVisits) state.totalVisits = dataPackage.totalVisits || 0;
                 if (!state.todayVisits) state.todayVisits = dataPackage.todayVisits || 0;
